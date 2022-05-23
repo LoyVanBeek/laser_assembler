@@ -1,0 +1,10 @@
+float32 min_height  # [m]
+float32 max_height  # [m]
+float32 min_width  # [rad]
+float32 max_width  # [rad]
+float32 vertical_resolution  # [m]
+float32 horizontal_resolution  # [rad]
+float32 depth_resolution  # [m]
+---
+bool success
+string message

@@ -19,7 +19,9 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 ##############################################################################
 add_service_files(FILES
 AssembleScans.srv
-AssembleScans2.srv)
+AssembleScans2.srv
+StartCollection.srv
+StopCollectionAndAssembleScans2.srv)
 
 generate_messages(DEPENDENCIES sensor_msgs std_msgs)
 
