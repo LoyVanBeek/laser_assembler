@@ -99,7 +99,7 @@ protected:
   ros::NodeHandle private_ns_;
   ros::NodeHandle n_;
 
-  bool assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index, unsigned int req_pts);
+  bool assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index);
 
 private:
   // ROS Input/Ouptut Handling
@@ -265,8 +265,16 @@ void BaseAssembler<T>::msgCallback(const boost::shared_ptr<const T>& scan_ptr)
 }
 
 template <class T>
-bool BaseAssembler<T>::assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index, const unsigned int req_pts)
+bool BaseAssembler<T>::assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index)
 {
+    // Keep a total of the points in the current request
+    unsigned int req_pts = 0 ;
+    // Find the end of the request
+    for (unsigned int i=start_index; i<past_end_index; i+=downsample_factor_)
+    {
+      req_pts += (scan_hist_[i].points.size ()+downsample_factor_-1)/downsample_factor_ ;
+    }
+
     // Note: We are assuming that channel information is consistent across multiple scans. If not, then bad things (segfaulting) will happen
     // Allocate space for the cloud
     cloud.points.resize (req_pts);
@@ -333,13 +341,11 @@ bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans:
     i++ ;
   }
   unsigned int start_index = i;
-
-  unsigned int req_pts = 0 ;                                                          // Keep a total of the points in the current request
+                                                    // Keep a total of the points in the current request
   // Find the end of the request
   while ( i < scan_hist_.size() &&                                                    // Don't go past end of deque
           scan_hist_[i].header.stamp < req.end )                                      // Don't go past the end-time of the request
   {
-    req_pts += (scan_hist_[i].points.size ()+downsample_factor_-1)/downsample_factor_ ;
     i += downsample_factor_ ;
   }
   unsigned int past_end_index = i ;
@@ -355,7 +361,7 @@ bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans:
   }
   else
   {
-    assembleScanIndices(resp.cloud, start_index, past_end_index, req_pts);
+    assembleScanIndices(resp.cloud, start_index, past_end_index);
   }
   scan_hist_mutex_.unlock() ;
 
