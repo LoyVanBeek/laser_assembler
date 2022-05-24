@@ -35,6 +35,7 @@
 //! \author Vijay Pradeep
 
 #include "ros/ros.h"
+#include "ros/console.h"
 #include "tf/transform_listener.h"
 #include "tf/message_filter.h"
 #include "sensor_msgs/PointCloud.h"
@@ -255,7 +256,7 @@ void BaseAssembler<T>::msgCallback(const boost::shared_ptr<const T>& scan_ptr)
   scan_hist_.push_back(cur_cloud) ;                              // Add the newest scan to the back of the deque
   total_pts_ += cur_cloud.points.size () ;                       // Add the new scan to the running total of points
 
-  ROS_DEBUG_NAMED("msgCallback", "Scans: %4u  Points: %10u\n", scan_hist_.size(), total_pts_) ;
+  ROS_DEBUG_STREAM_NAMED("msgCallback", "Scans: " << scan_hist_.size() << " Points: " << total_pts_) ;
 
   scan_hist_mutex_.unlock() ;
   ROS_DEBUG_NAMED("msgCallback", "done with msgCallback");

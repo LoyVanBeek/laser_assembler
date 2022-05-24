@@ -36,6 +36,8 @@
 #include "laser_geometry/laser_geometry.h"
 #include "sensor_msgs/LaserScan.h"
 #include "laser_assembler/base_assembler.h"
+#include "laser_assembler/AssembleScans2.h"
+#include "laser_assembler/StartCollection.h"
 #include "filters/filter_chain.h"
 
 using namespace laser_geometry;
@@ -52,25 +54,40 @@ class LaserScanAssembler : public BaseAssembler<sensor_msgs::LaserScan>
 public:
   LaserScanAssembler() : BaseAssembler<sensor_msgs::LaserScan>("max_scans"), filter_chain_("sensor_msgs::LaserScan")
   {
+    ROS_INFO("Constructor of LaserScanAssembler");
     // ***** Set Laser Projection Method *****
     private_ns_.param("ignore_laser_skew", ignore_laser_skew_, true);
+
+    // Automatically subscribe to scans or wait for service?
+    private_ns_.param("subscribe_directly", subscribe_directly_, true);
 
     // configure the filter chain from the parameter server
     filter_chain_.configure("filters", private_ns_);
 
-    // Have different callbacks, depending on whether or not we want to ignore laser skews.
-    if (ignore_laser_skew_)
-      start("scan");
-    else
-    {
-      start();
-      skew_scan_sub_ = n_.subscribe("scan", 10, &LaserScanAssembler::scanCallback, this);
-    }
+    start_collection_server_ = n_.advertiseService("start_collection", &LaserScanAssembler::startCollection, this);
+    if (subscribe_directly_)
+      subscribe();
+
   }
 
   ~LaserScanAssembler()
   {
 
+  }
+
+  void subscribe()
+  {
+    // Have different callbacks, depending on whether or not we want to ignore laser skews.
+    if (ignore_laser_skew_)
+    {
+      start("scan");
+    }
+    else
+    {
+      start();
+      skew_scan_sub_ = n_.subscribe("scan", 10, &LaserScanAssembler::scanCallback, this);
+    }
+    ROS_INFO("Started listening to scans");
   }
 
   unsigned int GetPointsInScan(const sensor_msgs::LaserScan& scan)
@@ -117,16 +134,24 @@ public:
     }
   }
 
+  bool startCollection(StartCollection::Request& req, StartCollection::Response& resp)
+  {
+    subscribe();
+    return true;
+  }
+
 private:
   bool ignore_laser_skew_;
+  bool subscribe_directly_;
   laser_geometry::LaserProjection projector_;
 
   ros::Subscriber skew_scan_sub_;
   ros::Duration max_tolerance_;   // The longest tolerance we've needed on a scan so far
+  ros::ServiceServer start_collection_server_;
+  StartCollection::Request current_req_;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
   mutable sensor_msgs::LaserScan scan_filtered_;
-
 };
 
 }
