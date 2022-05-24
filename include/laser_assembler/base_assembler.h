@@ -99,6 +99,8 @@ protected:
   ros::NodeHandle private_ns_;
   ros::NodeHandle n_;
 
+  bool assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index, unsigned int req_pts);
+
 private:
   // ROS Input/Ouptut Handling
   ros::ServiceServer build_cloud_server_;
@@ -263,12 +265,56 @@ void BaseAssembler<T>::msgCallback(const boost::shared_ptr<const T>& scan_ptr)
 }
 
 template <class T>
+bool BaseAssembler<T>::assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index, const unsigned int req_pts)
+{
+    // // Note: We are assuming that channel information is consistent across multiple scans. If not, then bad things (segfaulting) will happen
+    // // Allocate space for the cloud
+    // cloud.points.resize (req_pts);
+    // const unsigned int num_channels = scan_hist_[start_index].channels.size ();
+    // cloud.channels.resize (num_channels) ;
+
+    // ROS_INFO_STREAM_NAMED("assembleScans", "Cloud will have " << req_pts << " points and " << num_channels << " channels");
+
+    // for (unsigned int i = 0; i<num_channels; i++)
+    // {
+    //   cloud.channels[i].name = scan_hist_[start_index].channels[i].name ;
+    //   cloud.channels[i].values.resize (req_pts) ;
+    // }
+    // //cloud.header.stamp = req.end ;
+    // cloud.header.frame_id = fixed_frame_ ;
+    // unsigned int cloud_count = 0 ;
+    // for (i=start_index; i<past_end_index; i+=downsample_factor_)
+    // {
+
+    //   // Sanity check: Each channel should be the same length as the points vector
+    //   for (unsigned int chan_ind = 0; chan_ind < scan_hist_[i].channels.size(); chan_ind++)
+    //   {
+    //     if (scan_hist_[i].points.size () != scan_hist_[i].channels[chan_ind].values.size())
+    //       ROS_FATAL_NAMED("assembleScans", "Trying to add a malformed point cloud. Cloud has %u points, but channel %u has %u elems", (int)scan_hist_[i].points.size (), chan_ind, (int)scan_hist_[i].channels[chan_ind].values.size ());
+    //   }
+
+    //   for(unsigned int j=0; j<scan_hist_[i].points.size (); j+=downsample_factor_)
+    //   {
+    //     cloud.points[cloud_count].x = scan_hist_[i].points[j].x ;
+    //     cloud.points[cloud_count].y = scan_hist_[i].points[j].y ;
+    //     cloud.points[cloud_count].z = scan_hist_[i].points[j].z ;
+
+    //     for (unsigned int k=0; k<num_channels; k++)
+    //       cloud.channels[k].values[cloud_count] = scan_hist_[i].channels[k].values[j] ;
+
+    //     cloud_count++ ;
+    //   }
+    //   cloud.header.stamp = scan_hist_[i].header.stamp;
+    // }
+    return true;
+}
+
+template <class T>
 bool BaseAssembler<T>::buildCloud(AssembleScans::Request& req, AssembleScans::Response& resp)
 {
   ROS_WARN("Service 'build_cloud' is deprecated. Call 'assemble_scans' instead");
   return assembleScans(req, resp);
 }
-
 
 template <class T>
 bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans::Response& resp)
@@ -309,45 +355,7 @@ bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans:
   }
   else
   {
-    // Note: We are assuming that channel information is consistent across multiple scans. If not, then bad things (segfaulting) will happen
-    // Allocate space for the cloud
-    resp.cloud.points.resize (req_pts);
-    const unsigned int num_channels = scan_hist_[start_index].channels.size ();
-    resp.cloud.channels.resize (num_channels) ;
-
-    ROS_INFO_STREAM_NAMED("assembleScans", "Cloud will have " << req_pts << " points and " << num_channels << " channels");
-
-    for (i = 0; i<num_channels; i++)
-    {
-      resp.cloud.channels[i].name = scan_hist_[start_index].channels[i].name ;
-      resp.cloud.channels[i].values.resize (req_pts) ;
-    }
-    //resp.cloud.header.stamp = req.end ;
-    resp.cloud.header.frame_id = fixed_frame_ ;
-    unsigned int cloud_count = 0 ;
-    for (i=start_index; i<past_end_index; i+=downsample_factor_)
-    {
-
-      // Sanity check: Each channel should be the same length as the points vector
-      for (unsigned int chan_ind = 0; chan_ind < scan_hist_[i].channels.size(); chan_ind++)
-      {
-        if (scan_hist_[i].points.size () != scan_hist_[i].channels[chan_ind].values.size())
-          ROS_FATAL_NAMED("assembleScans", "Trying to add a malformed point cloud. Cloud has %u points, but channel %u has %u elems", (int)scan_hist_[i].points.size (), chan_ind, (int)scan_hist_[i].channels[chan_ind].values.size ());
-      }
-
-      for(unsigned int j=0; j<scan_hist_[i].points.size (); j+=downsample_factor_)
-      {
-        resp.cloud.points[cloud_count].x = scan_hist_[i].points[j].x ;
-        resp.cloud.points[cloud_count].y = scan_hist_[i].points[j].y ;
-        resp.cloud.points[cloud_count].z = scan_hist_[i].points[j].z ;
-
-        for (unsigned int k=0; k<num_channels; k++)
-          resp.cloud.channels[k].values[cloud_count] = scan_hist_[i].channels[k].values[j] ;
-
-        cloud_count++ ;
-      }
-      resp.cloud.header.stamp = scan_hist_[i].header.stamp;
-    }
+    assembleScanIndices(resp.cloud, start_index, past_end_index, req_pts);
   }
   scan_hist_mutex_.unlock() ;
 
@@ -377,4 +385,5 @@ bool BaseAssembler<T>::assembleScans2(AssembleScans2::Request& req, AssembleScan
   }
   return ret;
 }
+
 }

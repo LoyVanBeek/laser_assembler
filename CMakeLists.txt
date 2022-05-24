@@ -38,6 +38,8 @@ catkin_package(
 ##############################################################################
 # Build
 ##############################################################################
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 add_executable(laser_scan_assembler_srv src/laser_scan_assembler_srv.cpp)
 target_link_libraries(laser_scan_assembler_srv ${catkin_LIBRARIES} ${Boost_LIBRARIES})
