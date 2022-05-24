@@ -153,6 +153,15 @@ public:
       skew_scan_sub_.shutdown();
     }
     ROS_INFO("Stopped listening to scans");
+
+    scan_hist_mutex_.lock();
+
+    sensor_msgs::PointCloud cloud;
+    assembleScanIndices(cloud, 0, scan_hist_.size());
+    ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Cloud has " << cloud.points.size() << " points from " << scan_hist_.size() << " scans");
+
+    scan_hist_mutex_.unlock();
+
     return true;
   }
 

@@ -96,6 +96,10 @@ protected:
   tf::MessageFilter<T>* tf_filter_;
   message_filters::Subscriber<T> scan_sub_;
 
+  //! \brief Stores history of scans
+  std::deque<sensor_msgs::PointCloud> scan_hist_ ;
+  boost::mutex scan_hist_mutex_ ;
+
   ros::NodeHandle private_ns_;
   ros::NodeHandle n_;
 
@@ -118,10 +122,6 @@ private:
   bool assembleScans(AssembleScans::Request& req, AssembleScans::Response& resp) ;
   bool buildCloud2(AssembleScans2::Request& req, AssembleScans2::Response& resp) ;
   bool assembleScans2(AssembleScans2::Request& req, AssembleScans2::Response& resp) ;
-
-  //! \brief Stores history of scans
-  std::deque<sensor_msgs::PointCloud> scan_hist_ ;
-  boost::mutex scan_hist_mutex_ ;
 
   //! \brief The number points currently in the scan history
   unsigned int total_pts_ ;
