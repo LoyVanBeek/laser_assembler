@@ -67,6 +67,9 @@ public:
 
     start_collection_server_ = n_.advertiseService("start_collection", &LaserScanAssembler::startCollection, this);
     stop_collection_server_ = n_.advertiseService("stop_collection_and_assemble_scans2", &LaserScanAssembler::stopCollectionAndAssembleScans2, this);
+    
+    pointcloud2_pub = n_.advertise<sensor_msgs::PointCloud2>("depth", 1);
+
     if (subscribe_directly_)
       subscribe();
 
@@ -157,8 +160,19 @@ public:
     scan_hist_mutex_.lock();
 
     sensor_msgs::PointCloud cloud;
-    assembleScanIndices(cloud, 0, scan_hist_.size());
-    ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Cloud has " << cloud.points.size() << " points from " << scan_hist_.size() << " scans");
+    bool success = assembleScanIndices(cloud, 0, scan_hist_.size());
+    resp.success = success;
+    if (success)
+    {
+      ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Cloud has " << cloud.points.size() << " points from " << scan_hist_.size() << " scans");
+      sensor_msgs::PointCloud2 cloud2;
+      sensor_msgs::convertPointCloudToPointCloud2(cloud, cloud2);
+      pointcloud2_pub.publish(cloud2);
+    }
+    else
+    {
+      ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Could not assemble scans");
+    }
 
     scan_hist_mutex_.unlock();
 
@@ -175,6 +189,7 @@ private:
   ros::ServiceServer start_collection_server_;
   ros::ServiceServer stop_collection_server_;
   StartCollection::Request current_req_;
+  ros::Publisher pointcloud2_pub;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
   mutable sensor_msgs::LaserScan scan_filtered_;
