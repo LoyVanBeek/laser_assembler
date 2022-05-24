@@ -38,6 +38,7 @@
 #include "laser_assembler/base_assembler.h"
 #include "laser_assembler/AssembleScans2.h"
 #include "laser_assembler/StartCollection.h"
+#include "laser_assembler/StopCollectionAndAssembleScans2.h"
 #include "filters/filter_chain.h"
 
 using namespace laser_geometry;
@@ -65,6 +66,7 @@ public:
     filter_chain_.configure("filters", private_ns_);
 
     start_collection_server_ = n_.advertiseService("start_collection", &LaserScanAssembler::startCollection, this);
+    stop_collection_server_ = n_.advertiseService("stop_collection_and_assemble_scans2", &LaserScanAssembler::stopCollectionAndAssembleScans2, this);
     if (subscribe_directly_)
       subscribe();
 
@@ -140,6 +142,20 @@ public:
     return true;
   }
 
+  bool stopCollectionAndAssembleScans2(StopCollectionAndAssembleScans2::Request& req, StopCollectionAndAssembleScans2::Response& resp)
+  {
+    if (ignore_laser_skew_)
+    {
+      scan_sub_.unsubscribe();
+    }
+    else
+    {
+      skew_scan_sub_.shutdown();
+    }
+    ROS_INFO("Stopped listening to scans");
+    return true;
+  }
+
 private:
   bool ignore_laser_skew_;
   bool subscribe_directly_;
@@ -148,6 +164,7 @@ private:
   ros::Subscriber skew_scan_sub_;
   ros::Duration max_tolerance_;   // The longest tolerance we've needed on a scan so far
   ros::ServiceServer start_collection_server_;
+  ros::ServiceServer stop_collection_server_;
   StartCollection::Request current_req_;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;

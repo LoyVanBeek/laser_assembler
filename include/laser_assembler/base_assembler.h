@@ -94,6 +94,7 @@ public:
 protected:
   tf::TransformListener* tf_ ;
   tf::MessageFilter<T>* tf_filter_;
+  message_filters::Subscriber<T> scan_sub_;
 
   ros::NodeHandle private_ns_;
   ros::NodeHandle n_;
@@ -104,7 +105,6 @@ private:
   ros::ServiceServer assemble_scans_server_;
   ros::ServiceServer build_cloud_server2_;
   ros::ServiceServer assemble_scans_server2_;
-  message_filters::Subscriber<T> scan_sub_;
   message_filters::Connection tf_filter_connection_;
 
   //! \brief Callback function for every time we receive a new scan
