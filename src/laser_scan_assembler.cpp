@@ -34,6 +34,7 @@
 
 
 #include "laser_geometry/laser_geometry.h"
+#include "sensor_msgs/Image.h"
 #include "sensor_msgs/LaserScan.h"
 #include "laser_assembler/base_assembler.h"
 #include "laser_assembler/AssembleScans2.h"
@@ -68,7 +69,8 @@ public:
     start_collection_server_ = n_.advertiseService("start_collection", &LaserScanAssembler::startCollection, this);
     stop_collection_server_ = n_.advertiseService("stop_collection_and_assemble_scans2", &LaserScanAssembler::stopCollectionAndAssembleScans2, this);
     
-    pointcloud2_pub = n_.advertise<sensor_msgs::PointCloud2>("depth", 1);
+    pointcloud2_pub_ = n_.advertise<sensor_msgs::PointCloud2>("depth", 1);
+    stretched_range_image_pub_ =  n_.advertise<sensor_msgs::Image> ("depth_image", 1);
 
     if (subscribe_directly_)
       subscribe();
@@ -167,7 +169,7 @@ public:
       ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Cloud has " << cloud.points.size() << " points from " << scan_hist_.size() << " scans");
       sensor_msgs::PointCloud2 cloud2;
       sensor_msgs::convertPointCloudToPointCloud2(cloud, cloud2);
-      pointcloud2_pub.publish(cloud2);
+      pointcloud2_pub_.publish(cloud2);
     }
     else
     {
@@ -189,7 +191,10 @@ private:
   ros::ServiceServer start_collection_server_;
   ros::ServiceServer stop_collection_server_;
   StartCollection::Request current_req_;
-  ros::Publisher pointcloud2_pub;
+  ros::Publisher pointcloud2_pub_;
+  ros::Publisher stretched_range_image_pub_;
+
+  sensor_msgs::Image stretched_range_image_;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
   mutable sensor_msgs::LaserScan scan_filtered_;
