@@ -169,16 +169,10 @@ public:
     // stretched_range_image_.step = stretched_range_image_.width;
     // stretched_range_image_.data.resize(stretched_range_image_.width * stretched_range_image_.height);
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
+    ROS_WARN_COND(req.horizontal_resolution == 0, "horizontal_resolution is zero");
+    ROS_WARN_COND(req.vertical_resolution == 0, "vertical_resolution is zero");
     stretched_range_mat_ = cv::Mat::zeros(req.horizontal_resolution, req.vertical_resolution, CV_16UC1);
-    if (stretched_range_mat_.empty())
-    {
-      ROS_INFO("Mat is still empty");
-    }
-    else
-    {
-      ROS_INFO("Mat is filled");
-    }
-    ROS_INFO_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
+    ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
 
     subscribe();
     return true;
