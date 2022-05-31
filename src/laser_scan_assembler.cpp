@@ -42,6 +42,8 @@
 #include "laser_assembler/StartCollection.h"
 #include "laser_assembler/StopCollectionAndAssembleScans2.h"
 #include "filters/filter_chain.h"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "cv_bridge/cv_bridge.h"
 
 using namespace laser_geometry;
 using namespace std ;
@@ -123,6 +125,22 @@ public:
                  laser_geometry::channel_option::Timestamp;
       projector_.transformLaserScanToPointCloud (fixed_frame_id, scan_filtered_, cloud_out, *tf_, mask);
     }
+
+    if (!stretched_range_mat_.empty())
+    {
+      uint row = 0;  // Depends on height we're at.
+      for (size_t i = 0; i < scan_in.ranges.size(); i++)
+      {
+        uint column = i;
+        ROS_INFO_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
+        stretched_range_mat_.at<ushort>(row, column) = 0; //(ushort)(scan_in.ranges[i]*1000);
+      }
+    }
+    else
+    {
+      ROS_INFO("No stretched_range_mat_ to fill");
+    }
+
     return;
   }
 
@@ -145,14 +163,22 @@ public:
   bool startCollection(StartCollection::Request& req, StartCollection::Response& resp)
   {
     stretched_range_image_ = sensor_msgs::Image();
-    stretched_range_image_.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    stretched_range_image_.width = req.horizontal_resolution;
-    stretched_range_image_.height = req.vertical_resolution;
-    stretched_range_image_.step = stretched_range_image_.width;
-    stretched_range_image_.data.resize(stretched_range_image_.width * stretched_range_image_.height);
+    // stretched_range_image_.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    // stretched_range_image_.width = req.horizontal_resolution;
+    // stretched_range_image_.height = req.vertical_resolution;
+    // stretched_range_image_.step = stretched_range_image_.width;
+    // stretched_range_image_.data.resize(stretched_range_image_.width * stretched_range_image_.height);
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
-
-    ROS_INFO_STREAM("Created image to be filled by scans" << stretched_range_image_);
+    stretched_range_mat_ = cv::Mat::zeros(req.horizontal_resolution, req.vertical_resolution, CV_16UC1);
+    if (stretched_range_mat_.empty())
+    {
+      ROS_INFO("Mat is still empty");
+    }
+    else
+    {
+      ROS_INFO("Mat is filled");
+    }
+    ROS_INFO_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
 
     subscribe();
     return true;
@@ -189,6 +215,10 @@ public:
 
     scan_hist_mutex_.unlock();
 
+    cv_bridge::CvImage cvi_mat;
+    cvi_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    cvi_mat.image = stretched_range_mat_;
+    cvi_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_pub_.publish(stretched_range_image_);
 
     return true;
@@ -207,6 +237,7 @@ private:
   ros::Publisher pointcloud2_pub_;
   ros::Publisher stretched_range_image_pub_;
 
+  cv::Mat stretched_range_mat_;
   sensor_msgs::Image stretched_range_image_;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
