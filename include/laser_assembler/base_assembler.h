@@ -103,6 +103,9 @@ protected:
   ros::NodeHandle private_ns_;
   ros::NodeHandle n_;
 
+  //! \brief The frame to transform data into upon receipt
+  std::string fixed_frame_ ;
+
   bool assembleScanIndices(sensor_msgs::PointCloud& cloud, const unsigned int start_index, const unsigned int past_end_index);
 
 private:
@@ -128,9 +131,6 @@ private:
 
   //! \brief The max number of scans to store in the scan history
   unsigned int max_scans_ ;
-
-  //! \brief The frame to transform data into upon receipt
-  std::string fixed_frame_ ;
 
   //! \brief Specify how much to downsample the data. A value of 1 preserves all the data. 3 would keep 1/3 of the data.
   unsigned int downsample_factor_ ;

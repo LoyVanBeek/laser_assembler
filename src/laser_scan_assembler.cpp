@@ -34,6 +34,7 @@
 
 
 #include "laser_geometry/laser_geometry.h"
+#include "sensor_msgs/image_encodings.h"
 #include "sensor_msgs/Image.h"
 #include "sensor_msgs/LaserScan.h"
 #include "laser_assembler/base_assembler.h"
@@ -143,6 +144,16 @@ public:
 
   bool startCollection(StartCollection::Request& req, StartCollection::Response& resp)
   {
+    stretched_range_image_ = sensor_msgs::Image();
+    stretched_range_image_.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    stretched_range_image_.width = req.horizontal_resolution;
+    stretched_range_image_.height = req.vertical_resolution;
+    stretched_range_image_.step = stretched_range_image_.width;
+    stretched_range_image_.data.resize(stretched_range_image_.width * stretched_range_image_.height);
+    stretched_range_image_.header.frame_id = fixed_frame_.c_str();
+
+    ROS_INFO_STREAM("Created image to be filled by scans" << stretched_range_image_);
+
     subscribe();
     return true;
   }
@@ -177,6 +188,8 @@ public:
     }
 
     scan_hist_mutex_.unlock();
+
+    stretched_range_image_pub_.publish(stretched_range_image_);
 
     return true;
   }
