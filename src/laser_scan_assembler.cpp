@@ -156,8 +156,10 @@ public:
 
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
-        uint column = i;
-        ROS_DEBUG_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
+        auto measurement_angle = scan_in.angle_min + i*scan_in.angle_increment;
+        uint column = (measurement_angle - current_req_.min_width) / horizontal_step;
+        // ROS_DEBUG_STREAM("column: " << column << ", index: " << i << ", measurement_angle: " << measurement_angle << ", max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
+        // ROS_DEBUG_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
         if (column >= 0 && column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
         {
           auto value = (scan_in.ranges[i] - scan_in.range_min) / depth_scale;
