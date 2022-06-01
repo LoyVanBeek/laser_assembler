@@ -151,7 +151,8 @@ public:
 
       uint row = stretched_range_mat_.rows - ((height - current_req_.min_height) / vertical_step);  // TODO: check proper types, absolutes and rounding
       ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
-      auto depth_scale = (scan_in.range_max - scan_in.range_min) / std::numeric_limits<short>::max();
+      auto depth_scale = (scan_in.range_max - scan_in.range_min) / std::numeric_limits<ushort>::max();
+      ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<ushort>::max() << ", depth_scale: " << depth_scale);
 
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
@@ -159,7 +160,9 @@ public:
         ROS_DEBUG_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
         if (column >= 0 && column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
         {
-          stretched_range_mat_.at<ushort>(row, column) = (ushort)(scan_in.ranges[i] - scan_in.range_min) / depth_scale;  // TODO: scale according to current_req_.depth_resolution
+          auto value = (scan_in.ranges[i] - scan_in.range_min) / depth_scale;
+          ROS_INFO_STREAM("scan_in.ranges["<<i<<"]: " << scan_in.ranges[i] << ", value: " << value << ", (ushort)value: " << (ushort)value);
+          stretched_range_mat_.at<ushort>(row, column) = (ushort)value;
         }
         else
         {
