@@ -45,6 +45,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "cv_bridge/cv_bridge.h"
 #include "tf/transform_datatypes.h"
+#include <limits>
 
 using namespace laser_geometry;
 using namespace std ;
@@ -150,6 +151,7 @@ public:
 
       uint row = (height - current_req_.min_height) / vertical_step;  // TODO: check proper types, absolutes and rounding
       ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
+      auto depth_scale = (scan_in.range_max - scan_in.range_min) / std::numeric_limits<short>::max();
 
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
@@ -157,7 +159,7 @@ public:
         ROS_DEBUG_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
         if (column >= 0 && column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
         {
-          stretched_range_mat_.at<ushort>(row, column) = 65535;//(ushort)(scan_in.ranges[i]*1000);  // TODO: scale according to current_req_.depth_resolution
+          stretched_range_mat_.at<ushort>(row, column) = (ushort)(scan_in.ranges[i] - scan_in.range_min) / depth_scale;  // TODO: scale according to current_req_.depth_resolution
         }
         else
         {
