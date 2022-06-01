@@ -193,6 +193,10 @@ public:
 
   bool startCollection(StartCollection::Request& req, StartCollection::Response& resp)
   {
+    scan_hist_mutex_.lock();
+    scan_hist_.clear();
+    scan_hist_mutex_.unlock();
+
     current_req_ = req;
     stretched_range_image_ = sensor_msgs::Image();
     // stretched_range_image_.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
