@@ -44,6 +44,7 @@
 #include "filters/filter_chain.h"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "cv_bridge/cv_bridge.h"
+#include "tf/transform_datatypes.h"
 
 using namespace laser_geometry;
 using namespace std ;
@@ -142,12 +143,26 @@ public:
 
     if (!stretched_range_mat_.empty())
     {
-      uint row = 0;  // Depends on height we're at.
+      tf::StampedTransform transform;
+      tf_->lookupTransform(fixed_frame_id, scan_in.header.frame_id, ros::Time(0), transform);
+      auto height = transform.getOrigin().z();
+      auto vertical_step = (current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;
+
+      uint row = (height - current_req_.min_height) / vertical_step;  // TODO: check proper types, absolutes and rounding
+      ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
+
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
         uint column = i;
-        ROS_INFO_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
-        stretched_range_mat_.at<ushort>(row, column) = 0; //(ushort)(scan_in.ranges[i]*1000);
+        ROS_DEBUG_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
+        if (column >= 0 && column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
+        {
+          stretched_range_mat_.at<ushort>(row, column) = 65535;//(ushort)(scan_in.ranges[i]*1000);  // TODO: scale according to current_req_.depth_resolution
+        }
+        else
+        {
+          ROS_DEBUG("Row and/or column out of range");
+        }
       }
     }
     else
@@ -176,6 +191,7 @@ public:
 
   bool startCollection(StartCollection::Request& req, StartCollection::Response& resp)
   {
+    current_req_ = req;
     stretched_range_image_ = sensor_msgs::Image();
     // stretched_range_image_.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     // stretched_range_image_.width = req.horizontal_resolution;
@@ -185,7 +201,7 @@ public:
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
     ROS_WARN_COND(req.horizontal_resolution == 0, "horizontal_resolution is zero");
     ROS_WARN_COND(req.vertical_resolution == 0, "vertical_resolution is zero");
-    stretched_range_mat_ = cv::Mat::zeros(req.horizontal_resolution, req.vertical_resolution, CV_16UC1);
+    stretched_range_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
     ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
 
     subscribe();
@@ -219,6 +235,8 @@ public:
     cvi_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     cvi_mat.image = stretched_range_mat_;
     cvi_mat.toImageMsg(stretched_range_image_);
+    stretched_range_image_.header.stamp = ros::Time::now();
+    stretched_range_image_.header.frame_id = fixed_frame_.c_str();
     stretched_range_image_pub_.publish(stretched_range_image_);
 
     return true;
