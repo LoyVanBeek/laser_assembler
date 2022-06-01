@@ -197,13 +197,13 @@ void BaseAssembler<T>::start(const std::string& in_topic_name)
 {
   ROS_DEBUG("Called start(string). Starting to listen on message_filter::Subscriber the input stream");
   if (tf_filter_)
-    ROS_ERROR("assembler::start() was called twice!. This is bad, and could leak memory") ;
+    ROS_WARN("assembler::start() was called twice!. This is bad, and could leak memory if not done right") ;
   else
   {
-    scan_sub_.subscribe(n_, in_topic_name, 10);
     tf_filter_ = new tf::MessageFilter<T>(scan_sub_, *tf_, fixed_frame_, 10);
     tf_filter_->registerCallback( boost::bind(&BaseAssembler<T>::msgCallback, this, boost::placeholders::_1) );
   }
+  scan_sub_.subscribe(n_, in_topic_name, 10);
 }
 
 template <class T>
@@ -211,13 +211,13 @@ void BaseAssembler<T>::start()
 {
   ROS_DEBUG("Called start(). Starting tf::MessageFilter, but not initializing Subscriber");
   if (tf_filter_)
-    ROS_ERROR("assembler::start() was called twice!. This is bad, and could leak memory") ;
+    ROS_WARN("assembler::start() was called twice!. This is bad, and could leak memory if not done right") ;
   else
   {
-    scan_sub_.subscribe(n_, "bogus", 10);
     tf_filter_ = new tf::MessageFilter<T>(scan_sub_, *tf_, fixed_frame_, 10);
     tf_filter_->registerCallback( boost::bind(&BaseAssembler<T>::msgCallback, this, boost::placeholders::_1) );
   }
+  scan_sub_.subscribe(n_, "bogus", 10);
 }
 
 template <class T>
