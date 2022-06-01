@@ -149,7 +149,7 @@ public:
       auto height = transform.getOrigin().z();
       auto vertical_step = (current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;
 
-      uint row = (height - current_req_.min_height) / vertical_step;  // TODO: check proper types, absolutes and rounding
+      uint row = stretched_range_mat_.rows - ((height - current_req_.min_height) / vertical_step);  // TODO: check proper types, absolutes and rounding
       ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
       auto depth_scale = (scan_in.range_max - scan_in.range_min) / std::numeric_limits<short>::max();
 
