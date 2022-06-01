@@ -100,6 +100,20 @@ public:
     ROS_INFO("Started listening to scans");
   }
 
+  void unsubscribe()
+  {
+    ROS_INFO("Stopping to listen to scans");
+    if (ignore_laser_skew_)
+    {
+      scan_sub_.unsubscribe();
+    }
+    else
+    {
+      skew_scan_sub_.shutdown();
+    }
+    ROS_INFO("Stopped listening to scans");
+  }
+
   unsigned int GetPointsInScan(const sensor_msgs::LaserScan& scan)
   {
     return (scan.ranges.size ());
@@ -180,15 +194,7 @@ public:
 
   bool stopCollectionAndAssembleScans2(StopCollectionAndAssembleScans2::Request& req, StopCollectionAndAssembleScans2::Response& resp)
   {
-    if (ignore_laser_skew_)
-    {
-      scan_sub_.unsubscribe();
-    }
-    else
-    {
-      skew_scan_sub_.shutdown();
-    }
-    ROS_INFO("Stopped listening to scans");
+    unsubscribe();
 
     scan_hist_mutex_.lock();
 
