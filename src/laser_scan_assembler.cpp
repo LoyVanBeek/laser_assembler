@@ -158,7 +158,7 @@ public:
     {
       auto vertical_step = abs(current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;
       auto horizontal_step = abs(current_req_.max_width - current_req_.min_width) / current_req_.horizontal_resolution;
-      auto depth_step = abs(scan_in.range_max - scan_in.range_min) / std::numeric_limits<ushort>::max();
+      auto range_step = abs(current_req_.max_range - current_req_.min_range) / std::numeric_limits<ushort>::max();
 
       tf::StampedTransform transform;
       tf_->lookupTransform(fixed_frame_id, scan_in.header.frame_id, ros::Time(0), transform);
@@ -166,7 +166,7 @@ public:
       uint row = stretched_range_mat_.rows - ((height - current_req_.min_height) / vertical_step);  // TODO: check proper types, absolutes and rounding
       // ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
       // ROS_INFO_STREAM("max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
-      // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<ushort>::max() << ", depth_step: " << depth_step);
+      // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<ushort>::max() << ", range_step: " << range_step);
 
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
@@ -176,12 +176,19 @@ public:
         // ROS_DEBUG_STREAM("i: " << i << ", row: " << row << ", column: " << column << ", range: " << scan_in.ranges[i]);
         if (column >= 0 && column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
         {
-          auto value = (scan_in.ranges[i] - scan_in.range_min) / depth_step;
-          // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << scan_in.ranges[i] << ", value: " << value << ", (ushort)value: " << (ushort)value);
-          
-          // If a pixel already has a value (which is always, the case, pixels are initialized to max range), 
-          // take the minimum value of the new and current
-          stretched_range_mat_.at<ushort>(row, column) = std::min((ushort)value, stretched_range_mat_.at<ushort>(row, column));
+          if (scan_in.ranges[i] < current_req_.min_range)
+          {
+            stretched_range_mat_.at<ushort>(row, column) = 0;
+          }
+          else
+          {
+            auto value = (scan_in.ranges[i] - scan_in.range_min) / range_step;
+            // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << scan_in.ranges[i] << ", value: " << value << ", (ushort)value: " << (ushort)value);
+
+            // If a pixel already has a value (which is always the case, since pixels are initialized to max range),
+            // take the minimum value of the new and current
+            stretched_range_mat_.at<ushort>(row, column) = std::min((ushort)value, stretched_range_mat_.at<ushort>(row, column));
+          }
         }
         else
         {
