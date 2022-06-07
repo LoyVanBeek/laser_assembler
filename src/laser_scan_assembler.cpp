@@ -123,9 +123,11 @@ public:
      * X distance over the plane is then $range * cos(angle)$
      * Depth to the plane is then $range * sin(angle)$
      *
-     * The image X dimension is dependent on max range & angle, since $X_max = range_max * cos(angle_max)$
+     * The image X dimension is dependent on max range & FoV max angle, since $X_max = range_max * cos(angle_max)$
      *
      */
+    auto max_x = current_req_.max_range * cos(current_req_.max_width);
+    auto min_x = current_req_.max_range * cos(current_req_.min_width);
   }
 
   unsigned int GetPointsInScan(const sensor_msgs::LaserScan& scan)
