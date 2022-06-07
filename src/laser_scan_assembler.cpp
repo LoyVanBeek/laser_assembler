@@ -117,6 +117,17 @@ public:
     ROS_INFO("Stopped listening to scans");
   }
 
+  cv::Mat convertRangeToDepthImage(cv::Mat range_image)
+  {
+    /* Project the range data to a plane perpendicular to the optical axis of the scanner and through the scanner's center
+     * X distance over the plane is then $range * cos(angle)$
+     * Depth to the plane is then $range * sin(angle)$
+     *
+     * The image X dimension is dependent on max range & angle, since $X_max = range_max * cos(angle_max)$
+     *
+     */
+  }
+
   unsigned int GetPointsInScan(const sensor_msgs::LaserScan& scan)
   {
     return (scan.ranges.size ());
