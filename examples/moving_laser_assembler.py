@@ -27,7 +27,7 @@ if __name__ == "__main__":
     joint = "mast_lift_joint"
 
     scan_start = 0.10
-    scan_end = 2.6
+    scan_end = 2.1
     joint_velocity = 0.5
 
     scan_duration = rospy.Duration.from_sec(abs(scan_end - scan_start) / joint_velocity)
@@ -40,7 +40,9 @@ if __name__ == "__main__":
     )
 
     start_srv = rospy.ServiceProxy("/start_collection", StartCollection)
-    stop_srv = rospy.ServiceProxy("/stop_collection_and_assemble_scans2", StopCollectionAndAssembleScans2)
+    stop_srv = rospy.ServiceProxy(
+        "/stop_collection_and_assemble_scans2", StopCollectionAndAssembleScans2
+    )
 
     rospy.loginfo(f"Waiting for FollowJointTrajectory of {component}")
     fjta.wait_for_server(rospy.Duration(1))
@@ -49,13 +51,19 @@ if __name__ == "__main__":
     stop_srv.wait_for_service(rospy.Duration(1))
 
     rospy.loginfo(f"Waiting for current state of {component}")
-    current_state = rospy.wait_for_message("/joint_states", JointState)  # type: JointState
+    current_state = rospy.wait_for_message(
+        "/joint_states", JointState
+    )  # type: JointState
     current_state_dict = dict(zip(current_state.name, current_state.position))
     rospy.loginfo(f"Current state of {component} is {current_state_dict}")
 
     joint_initial = current_state_dict[joint]
-    current_to_start_scan_dur = rospy.Duration.from_sec(abs(scan_start - joint_initial) / joint_velocity)
-    end_scan_to_initial_dur = rospy.Duration.from_sec(abs(joint_initial - scan_end) / joint_velocity)
+    current_to_start_scan_dur = rospy.Duration.from_sec(
+        abs(scan_start - joint_initial) / joint_velocity
+    )
+    end_scan_to_initial_dur = rospy.Duration.from_sec(
+        abs(joint_initial - scan_end) / joint_velocity
+    )
 
     to_start_traj = JointTrajectory(
         header=Header(
@@ -64,8 +72,12 @@ if __name__ == "__main__":
         ),
         joint_names=["mast_lift_joint"],
         points=[
-            JointTrajectoryPoint(time_from_start=rospy.Duration(0), positions=[joint_initial]),
-            JointTrajectoryPoint(time_from_start=current_to_start_scan_dur, positions=[scan_start]),
+            JointTrajectoryPoint(
+                time_from_start=rospy.Duration(0), positions=[joint_initial]
+            ),
+            JointTrajectoryPoint(
+                time_from_start=current_to_start_scan_dur, positions=[scan_start]
+            ),
         ],
     )
     rospy.loginfo("Move to start of scan")
@@ -80,18 +92,23 @@ if __name__ == "__main__":
         ),
         joint_names=["mast_lift_joint"],
         points=[
-            JointTrajectoryPoint(time_from_start=rospy.Duration(0), positions=[scan_start]),
+            JointTrajectoryPoint(
+                time_from_start=rospy.Duration(0), positions=[scan_start]
+            ),
             JointTrajectoryPoint(time_from_start=scan_duration, positions=[scan_end]),
         ],
     )
     scan_movement_start = rospy.Time.now()
-    start_srv(min_height=scan_start,
-              max_height=scan_end,
-              min_width=-pi/2,
-              max_width=pi/2,
-              vertical_resolution=200,
-              horizontal_resolution=200,
-              depth_resolution=0)
+    start_srv(
+        min_height=scan_start,
+        max_height=scan_end,
+        min_width=-pi / 2,
+        max_width=pi / 2,
+        vertical_resolution=200,
+        horizontal_resolution=200,
+        min_range=1.5,
+        max_range=10,
+    )
     # Wait for a result for the total movement time + some margin
     fjta.send_goal_and_wait(
         FollowJointTrajectoryGoal(trajectory=scan_traj),
@@ -111,8 +128,12 @@ if __name__ == "__main__":
         ),
         joint_names=["mast_lift_joint"],
         points=[
-            JointTrajectoryPoint(time_from_start=rospy.Duration(0), positions=[scan_end]),
-            JointTrajectoryPoint(time_from_start=end_scan_to_initial_dur, positions=[joint_initial]),
+            JointTrajectoryPoint(
+                time_from_start=rospy.Duration(0), positions=[scan_end]
+            ),
+            JointTrajectoryPoint(
+                time_from_start=end_scan_to_initial_dur, positions=[joint_initial]
+            ),
         ],
     )
 
