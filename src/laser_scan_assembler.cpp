@@ -75,7 +75,7 @@ public:
     stop_collection_server_ = n_.advertiseService("stop_collection_and_assemble_scans2", &LaserScanAssembler::stopCollectionAndAssembleScans2, this);
     
     pointcloud2_pub_ = n_.advertise<sensor_msgs::PointCloud2>("depth", 1);
-    stretched_range_image_pub_ =  n_.advertise<sensor_msgs::Image> ("depth_image", 1);
+    stretched_range_image_pub_ =  n_.advertise<sensor_msgs::Image> ("range_image", 1);
 
     if (subscribe_directly_)
       subscribe();
