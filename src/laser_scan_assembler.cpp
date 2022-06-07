@@ -166,7 +166,10 @@ public:
         {
           auto value = (scan_in.ranges[i] - scan_in.range_min) / depth_step;
           // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << scan_in.ranges[i] << ", value: " << value << ", (ushort)value: " << (ushort)value);
-          stretched_range_mat_.at<ushort>(row, column) = (ushort)value;
+          
+          // If a pixel already has a value (which is always, the case, pixels are initialized to max range), 
+          // take the minimum value of the new and current
+          stretched_range_mat_.at<ushort>(row, column) = std::min((ushort)value, stretched_range_mat_.at<ushort>(row, column));
         }
         else
         {
