@@ -76,6 +76,7 @@ public:
     
     pointcloud2_pub_ = n_.advertise<sensor_msgs::PointCloud2>("depth", 1);
     stretched_range_image_pub_ =  n_.advertise<sensor_msgs::Image> ("range_image", 1);
+    stretched_depth_image_pub_ =  n_.advertise<sensor_msgs::Image> ("depth_image", 1);
 
     if (subscribe_directly_)
       subscribe();
@@ -272,9 +273,13 @@ private:
   StartCollection::Request current_req_;
   ros::Publisher pointcloud2_pub_;
   ros::Publisher stretched_range_image_pub_;
+  ros::Publisher stretched_depth_image_pub_;
 
   cv::Mat stretched_range_mat_;
   sensor_msgs::Image stretched_range_image_;
+
+  cv::Mat stretched_depth_mat_;
+  sensor_msgs::Image stretched_depth_image_;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
   mutable sensor_msgs::LaserScan scan_filtered_;
