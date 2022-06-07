@@ -214,7 +214,9 @@ public:
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
     ROS_WARN_COND(req.horizontal_resolution == 0, "horizontal_resolution is zero");
     ROS_WARN_COND(req.vertical_resolution == 0, "vertical_resolution is zero");
-    stretched_range_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
+    // Set uninitialized range to max of the datatype, so that we can take the minimum value of current 
+    // and potentially multiple measurements striking the same pixel
+    stretched_range_mat_ = cv::Mat::ones(req.vertical_resolution, req.horizontal_resolution, CV_16UC1) * std::numeric_limits<ushort>::max(); 
     ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
 
     subscribe();
