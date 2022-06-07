@@ -6,7 +6,14 @@ project(laser_assembler)
 ##############################################################################
 
 set(THIS_PACKAGE_ROS_DEPS
-tf sensor_msgs message_filters roscpp laser_geometry filters cv_bridge)
+  cv_bridge
+  filters 
+  laser_geometry 
+  message_filters 
+  roscpp 
+  sensor_msgs 
+  tf 
+)
 
 find_package(catkin REQUIRED COMPONENTS
   ${THIS_PACKAGE_ROS_DEPS}
@@ -18,10 +25,11 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 # Build service definitions
 ##############################################################################
 add_service_files(FILES
-AssembleScans.srv
-AssembleScans2.srv
-StartCollection.srv
-StopCollectionAndAssembleScans2.srv)
+  AssembleScans.srv
+  AssembleScans2.srv
+  StartCollection.srv
+  StopCollectionAndAssembleScans2.srv
+)
 
 generate_messages(DEPENDENCIES sensor_msgs std_msgs)
 
@@ -90,11 +98,11 @@ endif()
 ##############################################################################
 
 install(TARGETS
-    laser_scan_assembler_srv
     laser_scan_assembler
+    laser_scan_assembler_srv
     merge_clouds
-    point_cloud_assembler_srv
     point_cloud_assembler
+    point_cloud_assembler_srv
     point_cloud2_assembler
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
