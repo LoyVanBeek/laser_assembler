@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import argparse
 from actionlib.simple_action_client import SimpleActionClient
 from control_msgs.msg import (
     FollowJointTrajectoryAction,
@@ -22,6 +23,51 @@ from math import pi
 
 if __name__ == "__main__":
     rospy.init_node("assemble_moving_laser")
+
+    parser = argparse.ArgumentParser(
+        description="Control the fork and laser assembler in unison"
+    )
+    parser.add_argument(
+        "--scan_start", type=float, help="Height to start scan at", default=0.1
+    )
+    parser.add_argument(
+        "--scan_end", type=float, help="Height to end scan at", default=2.0
+    )
+    parser.add_argument(
+        "--velocity", type=float, help="Velocity to move the joint with", default=0.5
+    )
+    parser.add_argument(
+        "--min_width", type=float, help="Left end of the FoV", default=-pi
+    )
+    parser.add_argument(
+        "--max_width", type=float, help="Right end of the FoV", default=pi
+    )
+    parser.add_argument(
+        "--vertical_resolution",
+        type=int,
+        help="How many pixels in horizontal axis of image",
+        default=200,
+    )
+    parser.add_argument(
+        "--horizontal_resolution",
+        type=int,
+        help="How many pixels in vertical axis of image",
+        default=200,
+    )
+    parser.add_argument(
+        "--min_range",
+        type=float,
+        help="What is the minimum distance in the range image",
+        default=0,
+    )
+    parser.add_argument(
+        "--max_range",
+        type=float,
+        help="What is the maximum distance in the range image",
+        default=10,
+    )
+    args = parser.parse_args(rospy.myargv()[1:])
+    print(args)
 
     component = "mast_lift"
     joint = "mast_lift_joint"
