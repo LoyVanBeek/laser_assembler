@@ -162,8 +162,6 @@ public:
       auto vertical_step = abs(current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;  // [m] Height of a pixel in both depth and range image
       auto range_horizontal_step = abs(current_req_.max_width - current_req_.min_width) / current_req_.horizontal_resolution;  // [rad] angle covered by a pixel in the range image
       auto depth_horizontal_step = depth_width_x / current_req_.horizontal_resolution;  // [m] Width of a pixel in the depth image
-      auto range_step = abs(current_req_.max_range - current_req_.min_range) / std::numeric_limits<ushort>::max();  // [m] how much further away is a pixel of +1 value in the range image
-      auto depth_step = depth_max_val / std::numeric_limits<ushort>::max();  // [m] how much further away is a pixel of +1 value in the depth image?
 
       tf::StampedTransform transform;
       tf_->lookupTransform(fixed_frame_id, scan_in.header.frame_id, ros::Time(0), transform);
@@ -171,8 +169,8 @@ public:
       uint row = stretched_range_mat_.rows - ((height - current_req_.min_height) / vertical_step);  // TODO: check proper types, absolutes and rounding
       // ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
       // ROS_INFO_STREAM("max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
-      // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<ushort>::max() << ", range_step: " << range_step);
-      ROS_INFO_STREAM("depth_min_x: " << depth_min_x << ", depth_max_x: " << depth_max_x << ", depth_width_x: " << depth_width_x << ", depth_max_val: " << depth_max_val << ", depth_horizontal_step: " << depth_horizontal_step << ", depth_step: " << depth_step);
+      // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<uint16_t>::max());
+      ROS_INFO_STREAM("depth_min_x: " << depth_min_x << ", depth_max_x: " << depth_max_x << ", depth_width_x: " << depth_width_x << ", depth_max_val: " << depth_max_val << ", depth_horizontal_step: " << depth_horizontal_step);
 
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
@@ -189,16 +187,16 @@ public:
         {
           if (range < current_req_.min_range)
           {
-            stretched_range_mat_.at<ushort>(row, range_column) = 0;
+            stretched_range_mat_.at<uint16_t>(row, range_column) = 0;
           }
           else
           {
-            auto range_value = (range - scan_in.range_min) / range_step;
-            // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << range << ", value: " << value << ", (ushort)value: " << (ushort)value);
+            auto range_value = range * 1000;  // +1 value means 1mm further away
+            // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << range << ", value: " << value << ", (uint16_t)value: " << (uint16_t)value);
 
             // If a pixel already has a value (which is always the case, since pixels are initialized to max range),
             // take the minimum value of the new and current
-            stretched_range_mat_.at<ushort>(row, range_column) = std::min((ushort)range_value, stretched_range_mat_.at<ushort>(row, range_column));
+            stretched_range_mat_.at<uint16_t>(row, range_column) = (uint16_t)range_value;
           }
         }
         else
@@ -211,9 +209,9 @@ public:
           auto depth = (range * cos(measurement_angle));
           if (depth > 0.0) // Negative values are possible if the FoV is more than 180 degrees and the laser measures behind it's center plane
           {
-            auto depth_value = depth / depth_step;
-            ROS_INFO_STREAM_COND(i==i, "scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (ushort)depth_value: " << (ushort)depth_value << ", depth_column: " << depth_column);
-            stretched_depth_mat_.at<ushort>(row, depth_column) = std::min((ushort)depth, stretched_depth_mat_.at<ushort>(row, depth_column));
+            auto depth_value = depth * 1000;  // +1 value means 1mm further away
+            ROS_INFO_STREAM_COND(i==i, "scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (uint16_t)depth_value: " << (uint16_t)depth_value << ", depth_column: " << depth_column);
+            stretched_depth_mat_.at<uint16_t>(row, depth_column) = (uint16_t)depth_value;
           }
         }
         else
@@ -264,10 +262,10 @@ public:
     ROS_WARN_COND(req.vertical_resolution == 0, "vertical_resolution is zero");
     // Set uninitialized range to max of the datatype, so that we can take the minimum value of current 
     // and potentially multiple measurements striking the same pixel
-    stretched_range_mat_ = cv::Mat::ones(req.vertical_resolution, req.horizontal_resolution, CV_16UC1) * std::numeric_limits<ushort>::max(); 
+    stretched_range_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
     ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
 
-    stretched_depth_mat_ = cv::Mat::ones(req.vertical_resolution, req.horizontal_resolution, CV_16UC1) * std::numeric_limits<ushort>::max();
+    stretched_depth_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
     ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_depth_image_);
 
     subscribe();
