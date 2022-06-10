@@ -69,23 +69,30 @@ void runLoop()
   scan.ranges.resize(N);
   // scan.intensities.resize(N);
 
-  for (unsigned int i=0; i<N; i++)
-  {
-    scan.ranges[i] = 1.0;
-    // scan.intensities[i] = 10.0;
-  }
-
   int direction = 1;
 
   // Keep sending scans until the assembler is done
   while (nh.ok())
   {
+    for (unsigned int i=0; i<N; i++)
+    {
+      auto angle = scan.angle_min + i*scan.angle_increment - 1.571;
+
+      auto m = 1; // slope
+      auto b = 1; // Intercept of y axis
+      // y = mx + b
+      // x = r * cos(angle)
+      // r = b / (m * cos(a) - sin(a))
+      scan.ranges[i] = b / (m * cos(angle) - sin(angle));
+      // scan.intensities[i] = 10.0;
+    }
+
     laser_transform.getOrigin().setZ(laser_transform.getOrigin().getZ() - (0.025 * direction));
     scan.header.stamp = ros::Time::now();
     scan_pub.publish(scan);
     broadcaster.sendTransform(tf::StampedTransform(laser_transform, scan.header.stamp, "dummy_laser_link", "dummy_base_link"));
     loop_rate.sleep();
-    ROS_INFO_STREAM("Publishing scan at z=" << laser_transform.getOrigin().getZ());
+    ROS_DEBUG_STREAM("Publishing scan at z=" << laser_transform.getOrigin().getZ());
 
     if(laser_transform.getOrigin().getZ() < -2.0 || laser_transform.getOrigin().getZ() > 0)
     {
