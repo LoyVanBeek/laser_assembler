@@ -297,16 +297,18 @@ public:
 
     scan_hist_mutex_.unlock();
 
-    cv_bridge::CvImage cvi_mat;
-    cvi_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_mat.image = stretched_range_mat_;
-    cvi_mat.toImageMsg(stretched_range_image_);
+    cv_bridge::CvImage cvi_range_mat;
+    cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    cvi_range_mat.image = stretched_range_mat_;
+    cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
     stretched_range_image_pub_.publish(stretched_range_image_);
 
-    cvi_mat.image = stretched_depth_mat_;
-    cvi_mat.toImageMsg(stretched_depth_image_);
+    cv_bridge::CvImage cvi_depth_mat;
+    cvi_depth_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    cvi_depth_mat.image = stretched_depth_mat_;
+    cvi_depth_mat.toImageMsg(stretched_depth_image_);
     stretched_depth_image_.header.stamp = ros::Time::now();
     stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
     stretched_depth_image_pub_.publish(stretched_depth_image_);
