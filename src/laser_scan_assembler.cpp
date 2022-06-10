@@ -155,7 +155,7 @@ public:
        */
       auto depth_min_x = current_req_.max_range * sin(current_req_.min_width);  // [m] At what X would the max range fall at the first ray in the FoV?
       auto depth_max_x = current_req_.max_range * sin(current_req_.max_width);  // [m] At what X would the max range fall at the last ray in the FoV?
-      ROS_INFO_STREAM("current_req_.max_range: " << current_req_.max_range << ", current_req_.min_width: " << current_req_.min_width << ", sin(current_req_.min_width): " << sin(current_req_.min_width));
+      // ROS_INFO_STREAM("current_req_.max_range: " << current_req_.max_range << ", current_req_.min_width: " << current_req_.min_width << ", sin(current_req_.min_width): " << sin(current_req_.min_width));
       auto depth_width_x = abs(depth_max_x - depth_min_x);  // [m] Width of the image in meters
       auto depth_max_val = current_req_.max_range;  // [m]Maximum depth represented in the depth image
 
@@ -170,7 +170,7 @@ public:
       // ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
       // ROS_INFO_STREAM("max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
       // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<uint16_t>::max());
-      ROS_INFO_STREAM("depth_min_x: " << depth_min_x << ", depth_max_x: " << depth_max_x << ", depth_width_x: " << depth_width_x << ", depth_max_val: " << depth_max_val << ", depth_horizontal_step: " << depth_horizontal_step);
+      // ROS_INFO_STREAM("depth_min_x: " << depth_min_x << ", depth_max_x: " << depth_max_x << ", depth_width_x: " << depth_width_x << ", depth_max_val: " << depth_max_val << ", depth_horizontal_step: " << depth_horizontal_step);
 
       for (size_t i = 0; i < scan_in.ranges.size(); i++)
       {
@@ -182,7 +182,7 @@ public:
         uint range_column = (measurement_angle - current_req_.min_width) / range_horizontal_step;
         uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
         // ROS_DEBUG_STREAM("column: " << column << ", index: " << i << ", measurement_angle: " << measurement_angle << ", max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
-        ROS_INFO_STREAM_COND(i==i, "i: " << i << ", row: " << row << ", range_column: " << range_column << ", range: " << range << ", depth_column: " << depth_column);
+        // ROS_INFO_STREAM("i: " << i << ", row: " << row << ", range_column: " << range_column << ", range: " << range << ", depth_column: " << depth_column);
         if (range_column >= 0 && range_column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
         {
           if (range < current_req_.min_range)
@@ -210,7 +210,7 @@ public:
           if (depth > 0.0) // Negative values are possible if the FoV is more than 180 degrees and the laser measures behind it's center plane
           {
             auto depth_value = depth * 1000;  // +1 value means 1mm further away
-            ROS_INFO_STREAM_COND(i==i, "scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (uint16_t)depth_value: " << (uint16_t)depth_value << ", depth_column: " << depth_column);
+            // ROS_INFO_STREAM("scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (uint16_t)depth_value: " << (uint16_t)depth_value << ", depth_column: " << depth_column);
             stretched_depth_mat_.at<uint16_t>(row, depth_column) = (uint16_t)depth_value;
           }
         }
@@ -295,8 +295,8 @@ public:
 
     scan_hist_mutex_.unlock();
 
-    std::cout << "stretched_range_mat_: " << std::endl << stretched_range_mat_ << std::endl;
-    std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
+    // std::cout << "stretched_range_mat_: " << std::endl << stretched_range_mat_ << std::endl;
+    // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
 
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
