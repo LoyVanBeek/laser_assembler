@@ -28,40 +28,64 @@ if __name__ == "__main__":
         description="Control the fork and laser assembler in unison"
     )
     parser.add_argument(
-        "--scan_start", type=float, help="Height to start scan at", default=0.1
+        "--scan_start",
+        "--scan-start",
+        type=float,
+        help="Height to start scan at",
+        default=0.1,
     )
     parser.add_argument(
-        "--scan_end", type=float, help="Height to end scan at", default=2.0
+        "--scan_end",
+        "--scan-end",
+        type=float,
+        help="Height to end scan at",
+        default=2.0,
     )
     parser.add_argument(
-        "--velocity", type=float, help="Velocity to move the joint with", default=0.5
+        "--velocity",
+        "--velocity",
+        type=float,
+        help="Velocity to move the joint with",
+        default=0.5,
     )
     parser.add_argument(
-        "--min_width", type=float, help="Left end of the FoV", default=-pi
+        "--min_width",
+        "--min-width",
+        type=float,
+        help="Left end of the FoV",
+        default=-pi,
     )
     parser.add_argument(
-        "--max_width", type=float, help="Right end of the FoV", default=pi
+        "--max_width",
+        "--max-width",
+        type=float,
+        help="Right end of the FoV",
+        default=pi,
     )
     parser.add_argument(
         "--vertical_resolution",
+        "--vertical-resolution",
         type=int,
         help="How many pixels in horizontal axis of image",
         default=200,
     )
     parser.add_argument(
         "--horizontal_resolution",
+        "--horizontal-resolution",
         type=int,
         help="How many pixels in vertical axis of image",
         default=200,
     )
     parser.add_argument(
         "--min_range",
+        "--min-range",
         type=float,
         help="What is the minimum distance in the range image",
         default=0,
     )
     parser.add_argument(
         "--max_range",
+        "--max-range",
         type=float,
         help="What is the maximum distance in the range image",
         default=10,
@@ -72,9 +96,9 @@ if __name__ == "__main__":
     component = "mast_lift"
     joint = "mast_lift_joint"
 
-    scan_start = 0.10
-    scan_end = 2.1
-    joint_velocity = 0.5
+    scan_start = args.scan_start
+    scan_end = args.scan_end
+    joint_velocity = args.velocity
 
     scan_duration = rospy.Duration.from_sec(abs(scan_end - scan_start) / joint_velocity)
 
@@ -148,12 +172,12 @@ if __name__ == "__main__":
     start_srv(
         min_height=scan_start,
         max_height=scan_end,
-        min_width=-pi / 2,
-        max_width=pi / 2,
-        vertical_resolution=200,
-        horizontal_resolution=200,
-        min_range=1.5,
-        max_range=10,
+        min_width=args.min_width,
+        max_width=args.max_width,
+        vertical_resolution=args.vertical_resolution,
+        horizontal_resolution=args.horizontal_resolution,
+        min_range=args.min_range,
+        max_range=args.max_range,
     )
     # Wait for a result for the total movement time + some margin
     fjta.send_goal_and_wait(
