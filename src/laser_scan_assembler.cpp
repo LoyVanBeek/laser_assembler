@@ -184,7 +184,7 @@ public:
         uint range_column = (measurement_angle - current_req_.min_width) / range_horizontal_step;
         uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
         // ROS_DEBUG_STREAM("column: " << column << ", index: " << i << ", measurement_angle: " << measurement_angle << ", max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
-        // ROS_INFO_STREAM("i: " << i << ", row: " << row << ", range_column: " << range_column << ", range: " << range << ", depth_column: " << depth_column);
+        ROS_INFO_STREAM_COND(i==i, "i: " << i << ", row: " << row << ", range_column: " << range_column << ", range: " << range << ", depth_column: " << depth_column);
         if (range_column >= 0 && range_column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
         {
           if (range < current_req_.min_range)
@@ -209,9 +209,12 @@ public:
         if (depth_column >= 0 && depth_column < stretched_depth_mat_.cols && row >= 0 && row < stretched_depth_mat_.rows)
         {
           auto depth = (range * cos(measurement_angle));
-          auto depth_value = depth / depth_step;
-          ROS_INFO_STREAM_COND(i==271, "scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (ushort)depth_value: " << (ushort)depth_value << ", depth_column: " << depth_column);
-          stretched_depth_mat_.at<ushort>(row, depth_column) = std::min((ushort)depth, stretched_depth_mat_.at<ushort>(row, depth_column));
+          if (depth > 0.0) // Negative values are possible if the FoV is more than 180 degrees and the laser measures behind it's center plane
+          {
+            auto depth_value = depth / depth_step;
+            ROS_INFO_STREAM_COND(i==i, "scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (ushort)depth_value: " << (ushort)depth_value << ", depth_column: " << depth_column);
+            stretched_depth_mat_.at<ushort>(row, depth_column) = std::min((ushort)depth, stretched_depth_mat_.at<ushort>(row, depth_column));
+          }
         }
         else
         {
