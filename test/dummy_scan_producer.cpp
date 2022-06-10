@@ -48,7 +48,7 @@ void runLoop()
   ros::NodeHandle nh;
 
   ros::Publisher scan_pub   = nh.advertise<sensor_msgs::LaserScan>("dummy_scan", 100);
-  ros::Rate loop_rate(5);
+  ros::Rate loop_rate(10);
 
   // Configure the Transform broadcaster
   tf::TransformBroadcaster broadcaster;
@@ -56,33 +56,41 @@ void runLoop()
 
   // Populate the dummy laser scan
   sensor_msgs::LaserScan scan;
-  scan.header.frame_id = "/dummy_laser_link";
-  scan.angle_min = 0.0;
-  scan.angle_max = 99.0;
-  scan.angle_increment = 1.0;
+  scan.header.frame_id = "dummy_laser_link";
+
+  const unsigned int N = 100;
+  scan.angle_min = -2;
+  scan.angle_max = 2;
+  scan.angle_increment = 0.04;
   scan.time_increment = .001;
   scan.scan_time = .05;
   scan.range_min = .01;
   scan.range_max = 100.0;
-
-  const unsigned int N = 100;
   scan.ranges.resize(N);
-  scan.intensities.resize(N);
+  // scan.intensities.resize(N);
 
   for (unsigned int i=0; i<N; i++)
   {
-    scan.ranges[i] = 10.0;
-    scan.intensities[i] = 10.0;
+    scan.ranges[i] = 1.0;
+    // scan.intensities[i] = 10.0;
   }
+
+  int direction = 1;
 
   // Keep sending scans until the assembler is done
   while (nh.ok())
   {
+    laser_transform.getOrigin().setZ(laser_transform.getOrigin().getZ() - (0.025 * direction));
     scan.header.stamp = ros::Time::now();
     scan_pub.publish(scan);
     broadcaster.sendTransform(tf::StampedTransform(laser_transform, scan.header.stamp, "dummy_laser_link", "dummy_base_link"));
     loop_rate.sleep();
-    ROS_INFO("Publishing scan");
+    ROS_INFO_STREAM("Publishing scan at z=" << laser_transform.getOrigin().getZ());
+
+    if(laser_transform.getOrigin().getZ() < -2.0 || laser_transform.getOrigin().getZ() > 0)
+    {
+      direction *= -1;
+    }
   }
 }
 
