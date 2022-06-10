@@ -295,6 +295,9 @@ public:
 
     scan_hist_mutex_.unlock();
 
+    std::cout << "stretched_range_mat_: " << std::endl << stretched_range_mat_ << std::endl;
+    std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
+
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     cvi_range_mat.image = stretched_range_mat_;
