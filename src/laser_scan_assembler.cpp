@@ -221,13 +221,10 @@ public:
       projector_.transformLaserScanToPointCloud (fixed_frame_id, scan_filtered_, cloud_out, *tf_, mask);
     }
 
+    // Only do this when startCollection has set these Mat's to a useable value
     if (!stretched_range_mat_.empty() && !stretched_depth_mat_.empty())
     {
       ScanToImages(fixed_frame_id, scan_in);
-    }
-    else
-    {
-      ROS_INFO("No stretched_range_mat_ or stretched_depth_mat_to fill");
     }
 
     return;

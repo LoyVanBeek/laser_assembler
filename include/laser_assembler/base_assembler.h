@@ -281,7 +281,7 @@ bool BaseAssembler<T>::assembleScanIndices(sensor_msgs::PointCloud& cloud, const
     const unsigned int num_channels = scan_hist_[start_index].channels.size ();
     cloud.channels.resize (num_channels) ;
 
-    ROS_INFO_STREAM_NAMED("assembleScans", "Cloud will have " << req_pts << " points and " << num_channels << " channels");
+    ROS_DEBUG_STREAM_NAMED("assembleScanIndices", "Cloud will have " << req_pts << " points and " << num_channels << " channels");
 
     for (unsigned int i = 0; i<num_channels; i++)
     {
@@ -298,7 +298,7 @@ bool BaseAssembler<T>::assembleScanIndices(sensor_msgs::PointCloud& cloud, const
       for (unsigned int chan_ind = 0; chan_ind < scan_hist_[i].channels.size(); chan_ind++)
       {
         if (scan_hist_[i].points.size () != scan_hist_[i].channels[chan_ind].values.size())
-          ROS_FATAL_NAMED("assembleScans", "Trying to add a malformed point cloud. Cloud has %u points, but channel %u has %u elems", (int)scan_hist_[i].points.size (), chan_ind, (int)scan_hist_[i].channels[chan_ind].values.size ());
+          ROS_FATAL_NAMED("assembleScanIndices", "Trying to add a malformed point cloud. Cloud has %u points, but channel %u has %u elems", (int)scan_hist_[i].points.size (), chan_ind, (int)scan_hist_[i].channels[chan_ind].values.size ());
       }
 
       for(unsigned int j=0; j<scan_hist_[i].points.size (); j+=downsample_factor_)
@@ -327,7 +327,7 @@ bool BaseAssembler<T>::buildCloud(AssembleScans::Request& req, AssembleScans::Re
 template <class T>
 bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans::Response& resp)
 {
-  ROS_INFO_NAMED("assembleScans", "Starting Service Request") ;
+  ROS_DEBUG_NAMED("assembleScans", "Starting Service Request") ;
 
   scan_hist_mutex_.lock() ;
   // Determine where in our history we actually are
@@ -349,11 +349,11 @@ bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans:
     i += downsample_factor_ ;
   }
   unsigned int past_end_index = i ;
-  ROS_INFO_STREAM_NAMED("assembleScans", "start_index: " << i << ", past_end_index: " << past_end_index << ", downsample_factor_: " << downsample_factor_);
+  ROS_DEBUG_STREAM_NAMED("assembleScans", "start_index: " << i << ", past_end_index: " << past_end_index << ", downsample_factor_: " << downsample_factor_);
 
   if (start_index == past_end_index)
   {
-    ROS_INFO_STREAM_NAMED("assembleScans", "start_index==past_end_index, so no data");
+    ROS_DEBUG_STREAM_NAMED("assembleScans", "start_index==past_end_index, so no data");
     resp.cloud.header.frame_id = fixed_frame_ ;
     resp.cloud.header.stamp = req.end ;
     resp.cloud.points.resize (0) ;
@@ -365,7 +365,7 @@ bool BaseAssembler<T>::assembleScans(AssembleScans::Request& req, AssembleScans:
   }
   scan_hist_mutex_.unlock() ;
 
-  ROS_INFO_NAMED("assembleScans", "Point Cloud Results: Aggregated from index %u->%u. BufferSize: %lu. Points in cloud: %u", start_index, past_end_index, scan_hist_.size(), (int)resp.cloud.points.size ()) ;
+  ROS_DEBUG_NAMED("assembleScans", "Point Cloud Results: Aggregated from index %u->%u. BufferSize: %lu. Points in cloud: %u", start_index, past_end_index, scan_hist_.size(), (int)resp.cloud.points.size ()) ;
   return true ;
 }
 
@@ -391,5 +391,4 @@ bool BaseAssembler<T>::assembleScans2(AssembleScans2::Request& req, AssembleScan
   }
   return ret;
 }
-
 }
