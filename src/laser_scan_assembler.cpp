@@ -319,6 +319,10 @@ public:
     stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
     stretched_depth_image_pub_.publish(stretched_depth_image_);
 
+    // No need for theis data anymore, release the memory and make the Mats empty
+    stretched_range_mat_.release();
+    stretched_depth_mat_.release();
+
     return true;
   }
 
