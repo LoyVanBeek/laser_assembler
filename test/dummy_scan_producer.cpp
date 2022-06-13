@@ -46,6 +46,7 @@
 void runLoop()
 {
   ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
 
   ros::Publisher scan_pub   = nh.advertise<sensor_msgs::LaserScan>("dummy_scan", 100);
   ros::Rate loop_rate(10);
@@ -77,14 +78,28 @@ void runLoop()
     for (unsigned int i=0; i<N; i++)
     {
       auto angle = scan.angle_min + i*scan.angle_increment - 1.571;
+      
+      std::string mode;
+      pnh.param<std::string>("mode", mode, "radius");
+      float radius;
+      pnh.param<float>("radius", radius, 2.0);
 
-      auto m = 1; // slope
-      auto b = 1; // Intercept of y axis
-      // y = mx + b
-      // x = r * cos(angle)
-      // r = b / (m * cos(a) - sin(a))
-      scan.ranges[i] = b / (m * cos(angle) - sin(angle));
-      // scan.intensities[i] = 10.0;
+      if (mode == "radius")
+      {
+        scan.ranges[i] = radius;
+      }
+      else if (mode == "line")
+      {
+        float slope = 1;
+        float intercept = 1; // Intercept of y axis
+        pnh.param<float>("slope", slope, slope);
+        pnh.param<float>("intercept", intercept, intercept);
+        // y = mx + b
+        // x = r * cos(angle)
+        // r = b / (m * cos(a) - sin(a))  (Convert ot polar coordinates)
+        scan.ranges[i] = intercept / (slope * cos(angle) - sin(angle));
+        // scan.intensities[i] = 10.0;
+      }
     }
 
     laser_transform.getOrigin().setZ(laser_transform.getOrigin().getZ() - (0.025 * direction));
