@@ -144,7 +144,7 @@ public:
 
     tf::StampedTransform transform;
     tf_->lookupTransform(fixed_frame_id, scan_in.header.frame_id, ros::Time(0), transform);
-    auto height = transform.getOrigin().z(); // TODO: Make this bit configurable to be generic
+    auto height = (double)transform.getOrigin().z(); // TODO: Make this bit configurable to be generic
     uint row = stretched_range_mat_.rows - ((height - current_req_.min_height) / vertical_step);  // TODO: check proper types, absolutes and rounding
     // ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
     // ROS_INFO_STREAM("max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
@@ -206,8 +206,9 @@ public:
     // }
   
     // New implementation that also does interpolation
-    ROS_INFO_STREAM("Current height: " << height << ", current index: " << scan_index_);
-    height_values_.push_back(height);
+    // ROS_INFO_STREAM("Current height: " << height << ", current index: " << scan_index_);
+    height_values_.push_back<double>(height);
+    ROS_INFO_STREAM("height_values_.size: " << height_values_.size);
     // std::cout << "Before push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
 
     // std::vector<uint16_t> converted_ranges(scan_in.ranges.begin(), scan_in.ranges.end());
@@ -316,7 +317,7 @@ public:
 
     scan_buffer_ = cv::Mat::zeros(1000, 1000, CV_16UC1);
     scan_index_ = 0;
-    height_values_ = cv::Mat::zeros(1000, 0, CV_16UC1);
+    height_values_ = cv::Mat::zeros(1000, 0, CV_64FC1);
 
     subscribe();
     return true;
