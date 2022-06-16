@@ -117,6 +117,28 @@ public:
     ROS_INFO("Stopped listening to scans");
   }
 
+  cv::Mat sortMatRowBy(cv::Mat key, cv::Mat unsorted)
+  {
+    ROS_INFO_STREAM("key.size(): " << key.size() << ", unsorted.size(): " << unsorted.size());
+    cv::Mat sorted = cv::Mat(unsorted.size(), unsorted.type());
+
+    // A multimap inserts elements in order (per https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes)
+    std::multimap<double, std::size_t> mm;
+    for (uint origIndex = 0; origIndex != key.size[0]; ++origIndex)
+    {
+        mm.insert({key.at<double>(origIndex), origIndex});
+    }
+
+    for (auto it=mm.begin(); it!=mm.end(); ++it)
+    {
+      auto sortedIndex = std::distance(mm.begin(), it);
+      ROS_INFO_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
+      unsorted.row((*it).second).copyTo(sorted.row(sortedIndex));
+    }
+
+    return sorted;
+  }
+
   unsigned int GetPointsInScan(const sensor_msgs::LaserScan& scan)
   {
     return (scan.ranges.size ());
@@ -351,7 +373,7 @@ public:
 
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_range_mat.image = scan_buffer_;
+    cvi_range_mat.image = sortMatRowBy(height_values_, scan_buffer_);
     cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
