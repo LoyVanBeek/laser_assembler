@@ -328,6 +328,7 @@ public:
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
 
     scan_index_++;
+    max_scan_length_ = scan_in.ranges.size();
   }
 
   void ConvertToCloud(const string& fixed_frame_id, const sensor_msgs::LaserScan& scan_in, sensor_msgs::PointCloud& cloud_out)
@@ -443,7 +444,12 @@ public:
 
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_range_mat.image = sortMatRowBy(height_values_, scan_buffer_, sorted_heights);
+    auto filled_roi = cv::Rect(0, 0, max_scan_length_, scan_index_);
+    ROS_INFO_STREAM("Buffer has size " << scan_buffer_.size() << "and the filled region of that has size " << filled_roi);
+    cv::Mat cropped = cv::Mat(scan_buffer_, filled_roi);
+    cvi_range_mat.image = sortMatRowBy(height_values_, cropped, sorted_heights);
+    ROS_INFO_STREAM("findInterpolatedIndex(sorted_heights, 0.16): " << findInterpolatedIndex(sorted_heights, 0.16));
+
     cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
@@ -481,6 +487,7 @@ private:
   cv::Mat scan_buffer_;
   uint scan_index_;
   cv::Mat height_values_;
+  uint max_scan_length_;
 
   cv::Mat stretched_range_mat_;
   sensor_msgs::Image stretched_range_image_;
