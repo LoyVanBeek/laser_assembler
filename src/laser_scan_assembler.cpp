@@ -335,6 +335,7 @@ public:
     //   ", max_scan_length_" << max_scan_length_ <<
     //   ", std::max((uint)scan_in.ranges.size(), max_scan_length_" << std::max((uint)scan_in.ranges.size(), max_scan_length_));
     max_scan_length_ = std::max((uint)scan_in.ranges.size(), max_scan_length_);
+    last_scan_ = scan_in; // TODO: How to better keep track of this metadata? Should be the same for all scans of course, but not guaranteed. This is assumed in the buffer as well of course
   }
 
   void ConvertToCloud(const string& fixed_frame_id, const sensor_msgs::LaserScan& scan_in, sensor_msgs::PointCloud& cloud_out)
@@ -453,9 +454,40 @@ public:
     auto filled_roi = cv::Rect(0, 0, max_scan_length_, scan_index_);
     ROS_INFO_STREAM("Buffer has size " << scan_buffer_.size() << "and the filled region of that has size " << filled_roi);
     cv::Mat cropped = cv::Mat(scan_buffer_, filled_roi);
-    cvi_range_mat.image = sortMatRowBy(height_values_, cropped, sorted_heights);
+    cv::Mat sorted = sortMatRowBy(height_values_, cropped, sorted_heights);
     ROS_INFO_STREAM("findInterpolatedIndex(sorted_heights, 0.16): " << findInterpolatedIndex(sorted_heights, 0.16));
 
+    // Generate y_map for use in cv::remap
+    ROS_INFO("Create y_map_column");
+    cv::Mat y_map_column = cv::Mat::zeros(current_req_.vertical_resolution, 1, CV_32FC1);  // We'll stretch it later, as all the values in a row are the same for Y
+    auto vertical_step = fabs(current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;
+    for (size_t y = 0; y < current_req_.vertical_resolution; y++)
+    {
+      auto height_at_pixel = current_req_.min_height + (y*vertical_step);
+      auto row_in_buffer = findInterpolatedIndex(sorted_heights, height_at_pixel);
+      y_map_column.at<float>(y, 0) = (float)row_in_buffer;
+    }
+    cv::Mat y_map;
+    cv::resize(y_map_column, y_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
+
+    // Generate x map for use in cv::remap
+    ROS_INFO("Create x_map_row");
+    cv::Mat x_map_row = cv::Mat::zeros(1, current_req_.horizontal_resolution, CV_32FC1);  // We'll stretch it later, as all the values in a column are the same for X
+    auto horizontal_step = fabs(current_req_.max_width - current_req_.min_width) / current_req_.horizontal_resolution;
+    for (size_t x = 0; x < current_req_.horizontal_resolution; x++)
+    {
+      auto angle_at_pixel = current_req_.min_width + (x*horizontal_step);
+      auto column_in_buffer = (angle_at_pixel - last_scan_.angle_min) / last_scan_.angle_increment;
+      x_map_row.at<float>(0, x) = (float)column_in_buffer;
+    }
+    cv::Mat x_map;
+    cv::resize(x_map_row, x_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
+
+    cv::Mat remapped_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
+    ROS_INFO("Apply remapping");
+    cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR);
+
+    cvi_range_mat.image = remapped_buffer;
     cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
@@ -494,6 +526,7 @@ private:
   uint scan_index_;
   cv::Mat height_values_;
   uint max_scan_length_ = 0;
+  sensor_msgs::LaserScan last_scan_;
 
   cv::Mat stretched_range_mat_;
   sensor_msgs::Image stretched_range_image_;
