@@ -142,6 +142,71 @@ public:
     return sorted;
   }
 
+  /**
+   * @brief Given a sorted array of numbers and a number, return an imaginary index at which the query number would occur
+   *
+   * This assumes the query is in the range of numbers covered by the sorted_array.
+   * The interpolation is simply linear between the first number smaller than the query and the first number larger than the query
+   * 
+   * For example, let sorted_array be {0, 2, 4, 5} and query = 3.0.
+   * 3 sits exactly halfway between sorted_array[1] (=2) and sorted_array[2] (=4)
+   * Then the interpolated index would be 1.5.
+   * For query = 2.2, the index would be 1.1.
+   * For query = 4.3, the index would be 2.3, etc.
+   *
+   * @param sorted_array the array in which to for where the query number would go
+   * @param query number for which to find an index for
+   * @return double
+   */
+  double findInterpolatedIndex(std::vector<double> sorted_array, double query)
+  {
+    //TODO: Handle cases where the number is outside the range
+    ROS_INFO_STREAM("Looking for " << query);
+
+    // From https://alexsm.com/cpp-closest-lower-bound/
+    auto iter_geq = std::lower_bound(
+        sorted_array.begin(),
+        sorted_array.end(),
+        query
+    );
+
+    if (iter_geq == sorted_array.begin())
+    {
+        return 0;
+    }
+
+    double before = *(iter_geq - 1);
+    double after = *(iter_geq);
+
+    size_t index_under = 0;
+    double value_under = 0;
+    size_t index_above = 0;
+    double value_above = 0;
+
+    if (fabs(query - before) < fabs(query - after))
+    {
+      index_under = iter_geq - sorted_array.begin() - 1;
+      value_under = before;
+      index_above = iter_geq - sorted_array.begin();
+      value_above = after;
+    }
+    else
+    {
+      index_under = iter_geq - sorted_array.begin();
+      value_under = before;
+      index_above = iter_geq - sorted_array.begin()+1;
+      value_above = after;
+    }
+    ROS_INFO_STREAM(
+      "query: " << query <<
+      ", index_under: " << index_under <<
+      ", value_under: " << value_under <<
+      ", index_above: " << index_above <<
+      ", value_above: " << value_above);
+    double interpolated_index = index_under + ((query - value_under) / (value_above - value_under));
+    return interpolated_index;
+  }
+
   unsigned int GetPointsInScan(const sensor_msgs::LaserScan& scan)
   {
     return (scan.ranges.size ());
