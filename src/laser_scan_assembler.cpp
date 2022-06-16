@@ -210,22 +210,28 @@ public:
     height_values_.push_back(height);
     // std::cout << "Before push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
 
-    std::vector<uint16_t> converted_ranges(scan_in.ranges.begin(), scan_in.ranges.end());
+    // std::vector<uint16_t> converted_ranges(scan_in.ranges.begin(), scan_in.ranges.end());
 
-    ROS_INFO_STREAM("Initializing current_ranges from converted_ranges");
-    cv::Mat current_ranges = cv::Mat(converted_ranges, true);
-    ROS_INFO_STREAM("current_ranges *= 1000");
-    current_ranges *= 1000;  // From meters to millimeters
-    // std::cout << "current_ranges = " << current_ranges << std::endl;
+    // ROS_INFO_STREAM("Initializing current_ranges from converted_ranges");
+    // cv::Mat current_ranges = cv::Mat(converted_ranges, true);
+    // ROS_INFO_STREAM("current_ranges *= 1000");
+    // current_ranges *= 1000;  // From meters to millimeters
+    // // std::cout << "current_ranges = " << current_ranges << std::endl;
 
-    auto roi = cv::Rect(scan_index_, 0, scan_in.ranges.size(), 1);
-    ROS_INFO_STREAM("Initializing ranges2 as ROI in scan_buffer_" << roi);
-    cv::Mat ranges2 = cv::Mat(scan_buffer_, roi);
-    ROS_INFO_STREAM("ranges2.shape: " << ranges2.size);
-    ROS_INFO_STREAM("current_ranges.copyTo(ranges2)");
-    current_ranges.copyTo(ranges2);
-    ROS_INFO_STREAM("current_ranges.shape: " << current_ranges.size << ", scan_buffer_.shape: " << scan_buffer_.size);
-    ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
+    // auto roi = cv::Rect(scan_index_, 0, scan_in.ranges.size(), 1);
+    // ROS_INFO_STREAM("Initializing ranges2 as ROI in scan_buffer_" << roi);
+    // cv::Mat ranges2 = cv::Mat(scan_buffer_, roi);
+    // ROS_INFO_STREAM("ranges2.shape: " << ranges2.size);
+    // ROS_INFO_STREAM("current_ranges.copyTo(ranges2)");
+    // current_ranges.copyTo(ranges2);
+    // ROS_INFO_STREAM("current_ranges.shape: " << current_ranges.size << ", scan_buffer_.shape: " << scan_buffer_.size);
+    
+    // TODO: Make this much faster without loop
+    for (size_t i = 0; i < scan_in.ranges.size(); i++)
+    {
+      scan_buffer_.at<uint16_t>(scan_index_, i) = (uint16_t)(scan_in.ranges[i] * 1000);
+    }
+    // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
 
     // std::cout << "After  push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
