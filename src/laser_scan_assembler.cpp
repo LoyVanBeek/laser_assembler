@@ -46,6 +46,7 @@
 #include "cv_bridge/cv_bridge.h"
 #include "tf/transform_datatypes.h"
 #include <limits>
+#include <vector>
 
 using namespace laser_geometry;
 using namespace std ;
@@ -117,7 +118,7 @@ public:
     ROS_INFO("Stopped listening to scans");
   }
 
-  cv::Mat sortMatRowBy(cv::Mat key, cv::Mat unsorted)
+  cv::Mat sortMatRowBy(cv::Mat key, cv::Mat unsorted, std::vector<double>& sorted_keys)
   {
     ROS_INFO_STREAM("key.size(): " << key.size() << ", unsorted.size(): " << unsorted.size());
     cv::Mat sorted = cv::Mat(unsorted.size(), unsorted.type());
@@ -129,11 +130,13 @@ public:
         mm.insert({key.at<double>(origIndex), origIndex});
     }
 
+    sorted_keys = std::vector<double>();
     for (auto it=mm.begin(); it!=mm.end(); ++it)
     {
       auto sortedIndex = std::distance(mm.begin(), it);
       ROS_INFO_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
       unsorted.row((*it).second).copyTo(sorted.row(sortedIndex));
+      sorted_keys.push_back((*it).first);
     }
 
     return sorted;
@@ -371,9 +374,11 @@ public:
     // std::cout << "stretched_range_mat_: " << std::endl << stretched_range_mat_ << std::endl;
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
 
+    std::vector<double> sorted_heights;
+
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_range_mat.image = sortMatRowBy(height_values_, scan_buffer_);
+    cvi_range_mat.image = sortMatRowBy(height_values_, scan_buffer_, sorted_heights);
     cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
