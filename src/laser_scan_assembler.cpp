@@ -151,53 +151,86 @@ public:
     // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<uint16_t>::max());
     // ROS_INFO_STREAM("depth_min_x: " << depth_min_x << ", depth_max_x: " << depth_max_x << ", depth_width_x: " << depth_width_x << ", depth_max_val: " << depth_max_val << ", depth_horizontal_step: " << depth_horizontal_step);
 
-    for (size_t i = 0; i < scan_in.ranges.size(); i++)
-    {
-      auto range = scan_in.ranges[i];
-      auto measurement_angle = scan_in.angle_min + i*scan_in.angle_increment;
+    double previous_range = 0;
+    uint previous_range_column = -1;
 
-      auto depth_x_distance = range * sin(measurement_angle);
+    // for (size_t i = 0; i < scan_in.ranges.size(); i++)
+    // {
+    //   auto range = scan_in.ranges[i];
+    //   auto measurement_angle = scan_in.angle_min + i*scan_in.angle_increment;
 
-      uint range_column = (measurement_angle - current_req_.min_width) / range_horizontal_step;
-      uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
-      // ROS_DEBUG_STREAM("column: " << column << ", index: " << i << ", measurement_angle: " << measurement_angle << ", max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
-      // ROS_INFO_STREAM("i: " << i << ", row: " << row << ", range_column: " << range_column << ", range: " << range << ", depth_column: " << depth_column);
-      if (range_column >= 0 && range_column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
-      {
-        if (range < current_req_.min_range)
-        {
-          stretched_range_mat_.at<uint16_t>(row, range_column) = 0;
-        }
-        else
-        {
-          auto range_value = range * 1000;  // +1 value means 1mm further away
-          // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << range << ", value: " << value << ", (uint16_t)value: " << (uint16_t)value);
+    //   auto depth_x_distance = range * sin(measurement_angle);
 
-          // If a pixel already has a value (which is always the case, since pixels are initialized to max range),
-          // take the minimum value of the new and current
-          stretched_range_mat_.at<uint16_t>(row, range_column) = (uint16_t)range_value;
-        }
-      }
-      else
-      {
-        ROS_DEBUG("Row and/or column outside of range image");
-      }
+    //   uint range_column = (measurement_angle - current_req_.min_width) / range_horizontal_step;
+    //   uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
+    //   // ROS_DEBUG_STREAM("column: " << column << ", index: " << i << ", measurement_angle: " << measurement_angle << ", max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
+    //   // ROS_INFO_STREAM("i: " << i << ", row: " << row << ", range_column: " << range_column << ", range: " << range << ", depth_column: " << depth_column);
+    //   if (range_column >= 0 && range_column < stretched_range_mat_.cols && row >= 0 && row < stretched_range_mat_.rows)
+    //   {
+    //     if (range < current_req_.min_range)
+    //     {
+    //       stretched_range_mat_.at<uint16_t>(row, range_column) = 0;
+    //     }
+    //     else
+    //     {
+    //       auto range_value = range * 1000;  // +1 value means 1mm further away
+    //       // ROS_DEBUG_STREAM("scan_in.ranges["<<i<<"]: " << range << ", value: " << value << ", (uint16_t)value: " << (uint16_t)value);
 
-      if (depth_column >= 0 && depth_column < stretched_depth_mat_.cols && row >= 0 && row < stretched_depth_mat_.rows)
-      {
-        auto depth = (range * cos(measurement_angle));
-        if (depth > 0.0) // Negative values are possible if the FoV is more than 180 degrees and the laser measures behind it's center plane
-        {
-          auto depth_value = depth * 1000;  // +1 value means 1mm further away
-          // ROS_INFO_STREAM("scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (uint16_t)depth_value: " << (uint16_t)depth_value << ", depth_column: " << depth_column);
-          stretched_depth_mat_.at<uint16_t>(row, depth_column) = (uint16_t)depth_value;
-        }
-      }
-      else
-      {
-        ROS_DEBUG("Row and/or column outside of depth image");
-      }
-    }
+    //       // If a pixel already has a value (which is always the case, since pixels are initialized to max range),
+    //       // take the minimum value of the new and current
+    //       stretched_range_mat_.at<uint16_t>(row, range_column) = (uint16_t)range_value;
+    //     }
+    //   }
+    //   else
+    //   {
+    //     ROS_DEBUG("Row and/or column outside of range image");
+    //   }
+    //   previous_range = range;
+    //   previous_range_column = range_column;
+
+
+    //   if (depth_column >= 0 && depth_column < stretched_depth_mat_.cols && row >= 0 && row < stretched_depth_mat_.rows)
+    //   {
+    //     auto depth = (range * cos(measurement_angle));
+    //     if (depth > 0.0) // Negative values are possible if the FoV is more than 180 degrees and the laser measures behind it's center plane
+    //     {
+    //       auto depth_value = depth * 1000;  // +1 value means 1mm further away
+    //       // ROS_INFO_STREAM("scan_in.ranges["<<i<<"] ("<< measurement_angle << " rad): range: " << range << ", depth: " << depth << ", (uint16_t)depth_value: " << (uint16_t)depth_value << ", depth_column: " << depth_column);
+    //       stretched_depth_mat_.at<uint16_t>(row, depth_column) = (uint16_t)depth_value;
+    //     }
+    //   }
+    //   else
+    //   {
+    //     ROS_DEBUG("Row and/or column outside of depth image");
+    //   }
+    // }
+  
+    // New implementation that also does interpolation
+    ROS_INFO_STREAM("Current height: " << height << ", current index: " << scan_index_);
+    height_values_.push_back(height);
+    // std::cout << "Before push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
+
+    std::vector<uint16_t> converted_ranges(scan_in.ranges.begin(), scan_in.ranges.end());
+
+    ROS_INFO_STREAM("Initializing current_ranges from converted_ranges");
+    cv::Mat current_ranges = cv::Mat(converted_ranges, true);
+    ROS_INFO_STREAM("current_ranges *= 1000");
+    current_ranges *= 1000;  // From meters to millimeters
+    // std::cout << "current_ranges = " << current_ranges << std::endl;
+
+    auto roi = cv::Rect(scan_index_, 0, scan_in.ranges.size(), 1);
+    ROS_INFO_STREAM("Initializing ranges2 as ROI in scan_buffer_" << roi);
+    cv::Mat ranges2 = cv::Mat(scan_buffer_, roi);
+    ROS_INFO_STREAM("ranges2.shape: " << ranges2.size);
+    ROS_INFO_STREAM("current_ranges.copyTo(ranges2)");
+    current_ranges.copyTo(ranges2);
+    ROS_INFO_STREAM("current_ranges.shape: " << current_ranges.size << ", scan_buffer_.shape: " << scan_buffer_.size);
+    ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
+
+    // std::cout << "After  push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
+    // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
+
+    scan_index_++;
   }
 
   void ConvertToCloud(const string& fixed_frame_id, const sensor_msgs::LaserScan& scan_in, sensor_msgs::PointCloud& cloud_out)
@@ -225,6 +258,10 @@ public:
     if (!stretched_range_mat_.empty() && !stretched_depth_mat_.empty())
     {
       ScanToImages(fixed_frame_id, scan_in);
+    }
+
+    if (!scan_buffer_.empty())
+    {
     }
 
     return;
