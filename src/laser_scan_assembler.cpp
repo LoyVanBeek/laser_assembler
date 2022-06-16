@@ -270,6 +270,11 @@ public:
     stretched_depth_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
     ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_depth_image_);
 
+
+    scan_buffer_ = cv::Mat::zeros(1000, 1000, CV_16UC1);
+    scan_index_ = 0;
+    height_values_ = cv::Mat::zeros(1000, 0, CV_16UC1);
+
     subscribe();
     return true;
   }
@@ -302,7 +307,7 @@ public:
 
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_range_mat.image = stretched_range_mat_;
+    cvi_range_mat.image = scan_buffer_;
     cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
@@ -336,6 +341,10 @@ private:
   ros::Publisher pointcloud2_pub_;
   ros::Publisher stretched_range_image_pub_;
   ros::Publisher stretched_depth_image_pub_;
+
+  cv::Mat scan_buffer_;
+  uint scan_index_;
+  cv::Mat height_values_;
 
   cv::Mat stretched_range_mat_;
   sensor_msgs::Image stretched_range_image_;
