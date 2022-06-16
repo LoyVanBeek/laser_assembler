@@ -161,7 +161,7 @@ public:
   double findInterpolatedIndex(std::vector<double> sorted_array, double query)
   {
     //TODO: Handle cases where the number is outside the range
-    ROS_INFO_STREAM("Looking for " << query);
+    // ROS_INFO_STREAM("Looking for " << query);
 
     // From https://alexsm.com/cpp-closest-lower-bound/
     auto iter_geq = std::lower_bound(
@@ -197,13 +197,15 @@ public:
       index_above = iter_geq - sorted_array.begin()+1;
       value_above = after;
     }
-    ROS_INFO_STREAM(
-      "query: " << query <<
-      ", index_under: " << index_under <<
-      ", value_under: " << value_under <<
-      ", index_above: " << index_above <<
-      ", value_above: " << value_above);
+
     double interpolated_index = index_under + ((query - value_under) / (value_above - value_under));
+    //     ROS_INFO_STREAM(
+    //   "query: " << query <<
+    //   ", index_under: " << index_under <<
+    //   ", value_under: " << value_under <<
+    //   ", index_above: " << index_above <<
+    //   ", value_above: " << value_above)<<
+    //   ", interpolated_index: " << interpolated_index);
     return interpolated_index;
   }
 
@@ -298,7 +300,7 @@ public:
     // New implementation that also does interpolation
     // ROS_INFO_STREAM("Current height: " << height << ", current index: " << scan_index_);
     height_values_.push_back<double>(height);
-    ROS_INFO_STREAM("height_values_.size: " << height_values_.size);
+    // ROS_INFO_STREAM("height_values_.size: " << height_values_.size);
     // std::cout << "Before push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
 
     // std::vector<uint16_t> converted_ranges(scan_in.ranges.begin(), scan_in.ranges.end());
