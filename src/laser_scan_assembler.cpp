@@ -330,7 +330,11 @@ public:
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
 
     scan_index_++;
-    max_scan_length_ = scan_in.ranges.size();
+    // ROS_INFO_STREAM("scan_in.ranges.size(): " << scan_in.ranges.size() <<
+    //   ", (uint)scan_in.ranges.size()" << (uint)scan_in.ranges.size() <<
+    //   ", max_scan_length_" << max_scan_length_ <<
+    //   ", std::max((uint)scan_in.ranges.size(), max_scan_length_" << std::max((uint)scan_in.ranges.size(), max_scan_length_));
+    max_scan_length_ = std::max((uint)scan_in.ranges.size(), max_scan_length_);
   }
 
   void ConvertToCloud(const string& fixed_frame_id, const sensor_msgs::LaserScan& scan_in, sensor_msgs::PointCloud& cloud_out)
@@ -489,7 +493,7 @@ private:
   cv::Mat scan_buffer_;
   uint scan_index_;
   cv::Mat height_values_;
-  uint max_scan_length_;
+  uint max_scan_length_ = 0;
 
   cv::Mat stretched_range_mat_;
   sensor_msgs::Image stretched_range_image_;
