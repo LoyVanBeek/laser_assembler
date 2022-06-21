@@ -118,27 +118,39 @@ public:
     ROS_INFO("Stopped listening to scans");
   }
 
-  cv::Mat sortMatRowBy(cv::Mat key, cv::Mat unsorted, std::vector<double>& sorted_keys)
+  cv::Mat sortMatRowBy(cv::Mat key, cv::Mat unsorted, std::vector<double>& sorted_keys, std::multimap<double, std::size_t>& reordering)
   {
     ROS_DEBUG_STREAM("key.size(): " << key.size() << ", unsorted.size(): " << unsorted.size());
     cv::Mat sorted = cv::Mat(unsorted.size(), unsorted.type());
 
     // A multimap inserts elements in order (per https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes)
-    std::multimap<double, std::size_t> mm;
+    std::multimap<double, std::size_t> remapping;
     for (uint origIndex = 0; origIndex != key.size[0]; ++origIndex)
     {
-        mm.insert({key.at<double>(origIndex), origIndex});
+        reordering.insert({key.at<double>(origIndex), origIndex});
     }
 
     sorted_keys = std::vector<double>();
-    for (auto it=mm.begin(); it!=mm.end(); ++it)
+    for (auto it=reordering.begin(); it!=reordering.end(); ++it)
     {
-      auto sortedIndex = std::distance(mm.begin(), it);
+      auto sortedIndex = std::distance(reordering.begin(), it);
       // ROS_DEBUG_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
       unsorted.row((*it).second).copyTo(sorted.row(sortedIndex));
       sorted_keys.push_back((*it).first);
     }
 
+    return sorted;
+  }
+
+  cv::Mat reorderImageRows(cv::Mat unsorted, std::multimap<double, std::size_t> reordering)
+  {
+    cv::Mat sorted = cv::Mat(unsorted.size(), unsorted.type());
+    for (auto it=reordering.begin(); it!=reordering.end(); ++it)
+    {
+      auto sortedIndex = std::distance(reordering.begin(), it);
+      ROS_DEBUG_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
+      unsorted.row((*it).second).copyTo(sorted.row(sortedIndex));
+    }
     return sorted;
   }
 
@@ -455,12 +467,15 @@ public:
 
     std::vector<double> sorted_heights;
 
+    // Process range image
+
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     auto filled_roi = cv::Rect(0, 0, max_scan_length_, scan_index_);
     ROS_DEBUG_STREAM("Buffer has size " << scan_range_buffer_.size() << "and the filled region of that has size " << filled_roi);
     cv::Mat cropped = cv::Mat(scan_range_buffer_, filled_roi);
-    cv::Mat sorted = sortMatRowBy(height_values_, cropped, sorted_heights);
+    std::multimap<double, std::size_t> reordering;
+    cv::Mat sorted = sortMatRowBy(height_values_, cropped, sorted_heights, reordering);
 
     // Generate y_map for use in cv::remap
     ROS_DEBUG("Create y_map_column");
@@ -492,6 +507,14 @@ public:
     ROS_DEBUG("Apply remapping");
     cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR);
 
+    // Process depth image
+    auto filled_depth_roi = cv::Rect(0, 0, current_req_.horizontal_resolution, scan_index_);
+    ROS_INFO_STREAM("Buffer has size " << scan_range_buffer_.size() << "and the filled region of that has size " << filled_roi);
+    cv::Mat cropped_depth = cv::Mat(scan_depth_buffer_, filled_depth_roi);
+    ROS_INFO_STREAM("Cropped_depth has size " << cropped_depth.size());
+    cv::Mat sorted_depth = reorderImageRows(cropped_depth, reordering);
+    ROS_INFO_STREAM("sorted_depth has size " << sorted_depth.size());
+
     cvi_range_mat.image = remapped_buffer;
     cvi_range_mat.toImageMsg(stretched_range_image_);
     stretched_range_image_.header.stamp = ros::Time::now();
@@ -500,7 +523,7 @@ public:
 
     cv_bridge::CvImage cvi_depth_mat;
     cvi_depth_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_depth_mat.image = scan_depth_buffer_;
+    cvi_depth_mat.image = sorted_depth;
     cvi_depth_mat.toImageMsg(stretched_depth_image_);
     stretched_depth_image_.header.stamp = ros::Time::now();
     stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
