@@ -322,7 +322,7 @@ public:
     // TODO: Make this much faster without loop
     for (size_t i = 0; i < scan_in.ranges.size(); i++)
     {
-      scan_buffer_.at<uint16_t>(scan_index_, i) = (uint16_t)(scan_in.ranges[i] * 1000);
+      scan_range_buffer_.at<uint16_t>(scan_index_, i) = (uint16_t)(scan_in.ranges[i] * 1000);
     }
     // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
 
@@ -365,7 +365,7 @@ public:
       ScanToImages(fixed_frame_id, scan_in);
     }
 
-    if (!scan_buffer_.empty())
+    if (!scan_range_buffer_.empty())
     {
     }
 
@@ -413,7 +413,7 @@ public:
     ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_depth_image_);
 
 
-    scan_buffer_ = cv::Mat::zeros(1000, 1000, CV_16UC1);
+    scan_range_buffer_ = cv::Mat::zeros(1000, 1000, CV_16UC1);
     scan_index_ = 0;
     height_values_ = cv::Mat::zeros(1000, 0, CV_64FC1);
 
@@ -452,8 +452,8 @@ public:
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     auto filled_roi = cv::Rect(0, 0, max_scan_length_, scan_index_);
-    ROS_DEBUG_STREAM("Buffer has size " << scan_buffer_.size() << "and the filled region of that has size " << filled_roi);
-    cv::Mat cropped = cv::Mat(scan_buffer_, filled_roi);
+    ROS_DEBUG_STREAM("Buffer has size " << scan_range_buffer_.size() << "and the filled region of that has size " << filled_roi);
+    cv::Mat cropped = cv::Mat(scan_range_buffer_, filled_roi);
     cv::Mat sorted = sortMatRowBy(height_values_, cropped, sorted_heights);
 
     // Generate y_map for use in cv::remap
@@ -494,7 +494,7 @@ public:
 
     cv_bridge::CvImage cvi_depth_mat;
     cvi_depth_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_depth_mat.image = stretched_depth_mat_;
+    cvi_depth_mat.image = scan_depth_buffer_;
     cvi_depth_mat.toImageMsg(stretched_depth_image_);
     stretched_depth_image_.header.stamp = ros::Time::now();
     stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
@@ -521,7 +521,7 @@ private:
   ros::Publisher stretched_range_image_pub_;
   ros::Publisher stretched_depth_image_pub_;
 
-  cv::Mat scan_buffer_;
+  cv::Mat scan_range_buffer_;
   uint scan_index_;
   cv::Mat height_values_;
   uint max_scan_length_ = 0;
