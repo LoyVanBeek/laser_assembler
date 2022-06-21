@@ -450,8 +450,6 @@ public:
       ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Could not assemble scans");
     }
 
-    scan_hist_mutex_.unlock();
-
     // std::cout << "stretched_range_mat_: " << std::endl << stretched_range_mat_ << std::endl;
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
 
@@ -511,6 +509,8 @@ public:
     // No need for theis data anymore, release the memory and make the Mats empty
     stretched_range_mat_.release();
     stretched_depth_mat_.release();
+
+    scan_hist_mutex_.unlock();
 
     return true;
   }
