@@ -323,6 +323,13 @@ public:
     for (size_t i = 0; i < scan_in.ranges.size(); i++)
     {
       scan_range_buffer_.at<uint16_t>(scan_index_, i) = (uint16_t)(scan_in.ranges[i] * 1000);
+
+      auto measurement_angle = scan_in.angle_min + i*scan_in.angle_increment;
+      auto depth_x_distance = (uint16_t)(scan_in.ranges[i] * sin(measurement_angle));
+      uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
+
+      auto depth = (scan_in.ranges[i] * cos(measurement_angle));
+      scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column) = (uint16_t)(depth * 1000);
     }
     // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
 
@@ -414,6 +421,7 @@ public:
 
 
     scan_range_buffer_ = cv::Mat::zeros(1000, 1000, CV_16UC1);
+    scan_depth_buffer_ = cv::Mat::zeros(1000, req.horizontal_resolution, CV_16UC1);
     scan_index_ = 0;
     height_values_ = cv::Mat::zeros(1000, 0, CV_64FC1);
 
@@ -522,6 +530,7 @@ private:
   ros::Publisher stretched_depth_image_pub_;
 
   cv::Mat scan_range_buffer_;
+  cv::Mat scan_depth_buffer_;
   uint scan_index_;
   cv::Mat height_values_;
   uint max_scan_length_ = 0;
