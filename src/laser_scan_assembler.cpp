@@ -120,7 +120,7 @@ public:
 
   cv::Mat sortMatRowBy(cv::Mat key, cv::Mat unsorted, std::vector<double>& sorted_keys)
   {
-    ROS_INFO_STREAM("key.size(): " << key.size() << ", unsorted.size(): " << unsorted.size());
+    ROS_DEBUG_STREAM("key.size(): " << key.size() << ", unsorted.size(): " << unsorted.size());
     cv::Mat sorted = cv::Mat(unsorted.size(), unsorted.type());
 
     // A multimap inserts elements in order (per https://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes)
@@ -134,7 +134,7 @@ public:
     for (auto it=mm.begin(); it!=mm.end(); ++it)
     {
       auto sortedIndex = std::distance(mm.begin(), it);
-      ROS_INFO_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
+      // ROS_DEBUG_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
       unsorted.row((*it).second).copyTo(sorted.row(sortedIndex));
       sorted_keys.push_back((*it).first);
     }
@@ -452,13 +452,12 @@ public:
     cv_bridge::CvImage cvi_range_mat;
     cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     auto filled_roi = cv::Rect(0, 0, max_scan_length_, scan_index_);
-    ROS_INFO_STREAM("Buffer has size " << scan_buffer_.size() << "and the filled region of that has size " << filled_roi);
+    ROS_DEBUG_STREAM("Buffer has size " << scan_buffer_.size() << "and the filled region of that has size " << filled_roi);
     cv::Mat cropped = cv::Mat(scan_buffer_, filled_roi);
     cv::Mat sorted = sortMatRowBy(height_values_, cropped, sorted_heights);
-    ROS_INFO_STREAM("findInterpolatedIndex(sorted_heights, 0.16): " << findInterpolatedIndex(sorted_heights, 0.16));
 
     // Generate y_map for use in cv::remap
-    ROS_INFO("Create y_map_column");
+    ROS_DEBUG("Create y_map_column");
     cv::Mat y_map_column = cv::Mat::zeros(current_req_.vertical_resolution, 1, CV_32FC1);  // We'll stretch it later, as all the values in a row are the same for Y
     auto vertical_step = fabs(current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;
     for (size_t y = 0; y < current_req_.vertical_resolution; y++)
@@ -471,7 +470,7 @@ public:
     cv::resize(y_map_column, y_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
 
     // Generate x map for use in cv::remap
-    ROS_INFO("Create x_map_row");
+    ROS_DEBUG("Create x_map_row");
     cv::Mat x_map_row = cv::Mat::zeros(1, current_req_.horizontal_resolution, CV_32FC1);  // We'll stretch it later, as all the values in a column are the same for X
     auto horizontal_step = fabs(current_req_.max_width - current_req_.min_width) / current_req_.horizontal_resolution;
     for (size_t x = 0; x < current_req_.horizontal_resolution; x++)
@@ -484,7 +483,7 @@ public:
     cv::resize(x_map_row, x_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
 
     cv::Mat remapped_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
-    ROS_INFO("Apply remapping");
+    ROS_DEBUG("Apply remapping");
     cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR);
 
     cvi_range_mat.image = remapped_buffer;
