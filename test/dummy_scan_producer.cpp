@@ -42,6 +42,9 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <sensor_msgs/LaserScan.h>
+#include <algorithm>
+
+using namespace std ;
 
 void runLoop()
 {
@@ -106,6 +109,7 @@ void runLoop()
         // scan.intensities[i] = 10.0;
       }
       scan.ranges[i] *= -z * 0.5;
+      scan.ranges[i] = scan.ranges[i] < 0 ? 0 : scan.ranges[i];
     }
 
     scan_pub.publish(scan);
