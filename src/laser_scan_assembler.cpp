@@ -337,16 +337,38 @@ public:
       scan_range_buffer_.at<uint16_t>(scan_index_, i) = (uint16_t)(scan_in.ranges[i] * 1000);
 
       auto measurement_angle = scan_in.angle_min + i*scan_in.angle_increment;
-      auto depth_x_distance = (uint16_t)(scan_in.ranges[i] * sin(measurement_angle));
+      auto depth_x_distance = scan_in.ranges[i] * sin(measurement_angle);
       uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
 
-      auto depth = (scan_in.ranges[i] * cos(measurement_angle));
-      scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column) = (uint16_t)(depth * 1000);
+      auto depth = scan_in.ranges[i] * cos(measurement_angle);
+      if(depth > 0)
+      {
+        // Can only process positive depth value, cannot look behind us really
+        auto depth_value = (uint16_t)(depth * 1000);
+        auto curr_value = scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column);
+        auto min_value = curr_value > 0 ? std::min(depth_value, curr_value) : depth_value;
+        scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column) = min_value;
+
+        ROS_INFO_STREAM_COND(i==i,
+          "i: " << i <<
+          ", height: " << height <<
+          ", range: " << scan_in.ranges[i] <<
+          ", measurement_angle: " << measurement_angle <<
+          ", depth_x_distance: " << depth_x_distance <<
+          ", depth_column: " << depth_column <<
+          ", depth_min_x: " << depth_min_x <<
+          ", depth_horizontal_step: " << depth_horizontal_step <<
+          ", depth: " << depth <<
+          ", depth_value: " << depth_value <<
+          ", min_value: " << min_value <<
+          "");
+      }
     }
     // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
 
     // std::cout << "After  push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
+    std::cout << "New row at " << scan_index_ <<": " << std::endl << scan_depth_buffer_.row(scan_index_) << std::endl;
 
     scan_index_++;
     // ROS_INFO_STREAM("scan_in.ranges.size(): " << scan_in.ranges.size() <<
