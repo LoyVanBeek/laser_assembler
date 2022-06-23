@@ -510,7 +510,7 @@ public:
       y_map_column.at<float>(y, 0) = (float)row_in_buffer;
     }
     cv::Mat y_map;
-    cv::resize(y_map_column, y_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
+    cv::resize(y_map_column, y_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
     std::cout << "y_map" << std::endl << y_map << std::endl;
 
     // Generate x map for use in cv::remap
@@ -524,7 +524,7 @@ public:
       x_map_row.at<float>(0, x) = (float)column_in_buffer;
     }
     cv::Mat x_map;
-    cv::resize(x_map_row, x_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
+    cv::resize(x_map_row, x_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
 
     cv::Mat remapped_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
     ROS_DEBUG("Apply remapping");
@@ -554,7 +554,7 @@ public:
     std::cout << "depth_x_map_row" << std::endl << depth_x_map_row << std::endl;
 
     cv::Mat depth_x_map;
-    cv::resize(depth_x_map_row, depth_x_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
+    cv::resize(depth_x_map_row, depth_x_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
     ROS_INFO_STREAM("depth_x_map has size " << depth_x_map.size());
     std::cout << "depth_x_map" << std::endl << depth_x_map << std::endl;
 
