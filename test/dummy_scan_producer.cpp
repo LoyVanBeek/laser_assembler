@@ -105,7 +105,7 @@ void runLoop()
         scan.ranges[i] = intercept / (slope * cos(angle) - sin(angle));
         // scan.intensities[i] = 10.0;
       }
-      // scan.ranges[i] *= -z * 0.5;
+      scan.ranges[i] *= -z * 0.5;
     }
 
     scan_pub.publish(scan);
