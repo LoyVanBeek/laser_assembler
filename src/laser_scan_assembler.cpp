@@ -349,19 +349,19 @@ public:
         auto min_value = curr_value > 0 ? std::min(depth_value, curr_value) : depth_value;
         scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column) = min_value;
 
-        ROS_INFO_STREAM_COND(i==i,
-          "i: " << i <<
-          ", height: " << height <<
-          ", range: " << scan_in.ranges[i] <<
-          ", measurement_angle: " << measurement_angle <<
-          ", depth_x_distance: " << depth_x_distance <<
-          ", depth_column: " << depth_column <<
-          ", depth_min_x: " << depth_min_x <<
-          ", depth_horizontal_step: " << depth_horizontal_step <<
-          ", depth: " << depth <<
-          ", depth_value: " << depth_value <<
-          ", min_value: " << min_value <<
-          "");
+        // ROS_INFO_STREAM_COND(i==i,
+        //   "i: " << i <<
+        //   ", height: " << height <<
+        //   ", range: " << scan_in.ranges[i] <<
+        //   ", measurement_angle: " << measurement_angle <<
+        //   ", depth_x_distance: " << depth_x_distance <<
+        //   ", depth_column: " << depth_column <<
+        //   ", depth_min_x: " << depth_min_x <<
+        //   ", depth_horizontal_step: " << depth_horizontal_step <<
+        //   ", depth: " << depth <<
+        //   ", depth_value: " << depth_value <<
+        //   ", min_value: " << min_value <<
+        //   "");
       }
     }
     // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
@@ -511,6 +511,7 @@ public:
     }
     cv::Mat y_map;
     cv::resize(y_map_column, y_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
+    std::cout << "y_map" << std::endl << y_map << std::endl;
 
     // Generate x map for use in cv::remap
     ROS_DEBUG("Create x_map_row");
@@ -550,6 +551,8 @@ public:
       // Depths are already in the right column, that is done in ScanToImages where the appropriate trigonometry is perfomed
       x_map_row.at<float>(0, x) = (float)x;
     }
+    std::cout << "depth_x_map_row" << std::endl << depth_x_map_row << std::endl;
+
     cv::Mat depth_x_map;
     cv::resize(depth_x_map_row, depth_x_map, cv::Size(current_req_.vertical_resolution, current_req_.horizontal_resolution), cv::INTER_NEAREST);
     ROS_INFO_STREAM("depth_x_map has size " << depth_x_map.size());
