@@ -341,7 +341,7 @@ public:
       uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
 
       auto depth = scan_in.ranges[i] * cos(measurement_angle);
-      if(depth > 0)
+      if(depth > 0 && depth_column >= 0 && depth_column < scan_depth_buffer_.cols)
       {
         // Can only process positive depth value, cannot look behind us really
         auto depth_value = (uint16_t)(depth * 1000);
