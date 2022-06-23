@@ -528,7 +528,7 @@ public:
 
     cv::Mat remapped_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
     ROS_DEBUG("Apply remapping");
-    cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR);
+    cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR, cv::BORDER_CONSTANT, 0);
 
     // Process depth image
     auto filled_depth_roi = cv::Rect(0, 0, current_req_.horizontal_resolution, scan_index_);
@@ -562,7 +562,7 @@ public:
 
     cv::Mat remapped_depth_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
     ROS_DEBUG("Apply remapping");
-    cv::remap(sorted_depth, remapped_depth_buffer, depth_x_map, y_map, cv::INTER_LINEAR);
+    cv::remap(sorted_depth, remapped_depth_buffer, depth_x_map, y_map, cv::INTER_LINEAR, cv::BORDER_CONSTANT, 0);
     ROS_INFO_STREAM("remapped_depth_buffer has size " << remapped_depth_buffer.size());
     std::cout << "remapped_depth_buffer" << std::endl << remapped_depth_buffer << std::endl;
 
