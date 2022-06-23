@@ -549,7 +549,7 @@ public:
     for (size_t x = 0; x < current_req_.horizontal_resolution; x++)
     {
       // Depths are already in the right column, that is done in ScanToImages where the appropriate trigonometry is perfomed
-      x_map_row.at<float>(0, x) = (float)x;
+      depth_x_map_row.at<float>(0, x) = (float)x;
     }
     std::cout << "depth_x_map_row" << std::endl << depth_x_map_row << std::endl;
 
