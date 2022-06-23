@@ -211,13 +211,13 @@ public:
     }
 
     double interpolated_index = index_under + ((query - value_under) / (value_above - value_under));
-    //     ROS_INFO_STREAM(
-    //   "query: " << query <<
-    //   ", index_under: " << index_under <<
-    //   ", value_under: " << value_under <<
-    //   ", index_above: " << index_above <<
-    //   ", value_above: " << value_above)<<
-    //   ", interpolated_index: " << interpolated_index);
+        ROS_INFO_STREAM(
+      "query: " << query <<
+      ", index_under: " << index_under <<
+      ", value_under: " << value_under <<
+      ", index_above: " << index_above <<
+      ", value_above: " << value_above <<
+      ", interpolated_index: " << interpolated_index);
     return interpolated_index;
   }
 
@@ -349,26 +349,31 @@ public:
         auto min_value = curr_value > 0 ? std::min(depth_value, curr_value) : depth_value;
         scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column) = min_value;
 
-        // ROS_INFO_STREAM_COND(i==i,
-        //   "i: " << i <<
-        //   ", height: " << height <<
-        //   ", range: " << scan_in.ranges[i] <<
-        //   ", measurement_angle: " << measurement_angle <<
-        //   ", depth_x_distance: " << depth_x_distance <<
-        //   ", depth_column: " << depth_column <<
-        //   ", depth_min_x: " << depth_min_x <<
-        //   ", depth_horizontal_step: " << depth_horizontal_step <<
-        //   ", depth: " << depth <<
-        //   ", depth_value: " << depth_value <<
-        //   ", min_value: " << min_value <<
-        //   "");
+        ROS_INFO_STREAM_COND(0==0,
+          "i: " << i <<
+          ", height: " << height <<
+          ", range: " << scan_in.ranges[i] <<
+          ", measurement_angle: " << measurement_angle <<
+          ", depth_x_distance: " << depth_x_distance <<
+          ", depth_column: " << depth_column <<
+          ", depth_min_x: " << depth_min_x <<
+          ", depth_horizontal_step: " << depth_horizontal_step <<
+          ", depth: " << depth <<
+          ", depth_value: " << depth_value <<
+          ", curr_value: " << curr_value <<
+          ", min_value: " << min_value <<
+          "");
+      }
+      else
+      {
+        ROS_INFO_STREAM("Not writing to depth_column " << depth_column << ", range=" << scan_in.ranges[i] << ", measurement_angle=" << measurement_angle);
       }
     }
     // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
 
     // std::cout << "After  push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
     // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
-    std::cout << "New row at " << scan_index_ <<": " << std::endl << scan_depth_buffer_.row(scan_index_) << std::endl;
+    std::cout << "New row at " << scan_index_ <<" (height=" << height << "): " << std::endl << scan_depth_buffer_.row(scan_index_) << std::endl;
 
     scan_index_++;
     // ROS_INFO_STREAM("scan_in.ranges.size(): " << scan_in.ranges.size() <<
@@ -508,10 +513,12 @@ public:
       auto height_at_pixel = current_req_.min_height + (y*vertical_step);
       auto row_in_buffer = findInterpolatedIndex(sorted_heights, height_at_pixel);
       y_map_column.at<float>(y, 0) = (float)row_in_buffer;
+      ROS_INFO_STREAM("y: " << y << 
+        ", height_at_pixel: " << height_at_pixel << 
+        ", row_in_buffer:" << (float)row_in_buffer);
     }
     cv::Mat y_map;
     cv::resize(y_map_column, y_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
-    std::cout << "y_map" << std::endl << y_map << std::endl;
 
     // Generate x map for use in cv::remap
     ROS_DEBUG("Create x_map_row");
@@ -551,14 +558,15 @@ public:
       // Depths are already in the right column, that is done in ScanToImages where the appropriate trigonometry is perfomed
       depth_x_map_row.at<float>(0, x) = (float)x;
     }
-    std::cout << "depth_x_map_row" << std::endl << depth_x_map_row << std::endl;
+    // std::cout << "depth_x_map_row" << std::endl << depth_x_map_row << std::endl;
 
     cv::Mat depth_x_map;
     cv::resize(depth_x_map_row, depth_x_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
     ROS_INFO_STREAM("depth_x_map has size " << depth_x_map.size());
-    std::cout << "depth_x_map" << std::endl << depth_x_map << std::endl;
+    // std::cout << "depth_x_map" << std::endl << depth_x_map << std::endl;
 
     // Depth can use the same y map, since the ordering of the rows is the same and the output resolution is the same
+    std::cout << "y_map" << std::endl << y_map << std::endl;
 
     cv::Mat remapped_depth_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
     ROS_DEBUG("Apply remapping");
