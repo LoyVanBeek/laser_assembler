@@ -494,21 +494,27 @@ public:
     // Calculate cosine of all angles, in place
     cos_angle_row.forEach<float>([this, horizontal_step](float &value, const int* position) -> void {
         auto angle_at_pixel = current_req_.min_width + (position[1]*horizontal_step);
-        std::cout << "position[" << position[0] << ", " << position[1] << "]: " << value << ", angle_at_pixel: " << angle_at_pixel << std::endl;
+        // std::cout << "position[" << position[0] << ", " << position[1] << "]: " << value << ", angle_at_pixel: " << angle_at_pixel << std::endl;
         value = cos(angle_at_pixel);
     });
-    std::cout << "cos(angle_row): " << cos_angle_row << std::endl;
+    // std::cout << "cos(angle_row): " << cos_angle_row << std::endl;
         
     // Angles, step 3: stretch the row vertically so all output rows are the same
     cv::Mat cos_angles = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_32FC1);
-    cv::resize(cos_angle_row, cos_angles, cv::Size(current_req_.horizontal_resolution, 1), cv::INTER_NEAREST);
+    cv::resize(cos_angle_row, cos_angles, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
 
-    std::cout << "cos_angles: " << cos_angles << std::endl;
+    // std::cout << "cos_angles: " << cos_angles << std::endl;
     
-    cv::Mat depth = remapped_buffer * cos_angles;
-    std::cout << "depth: " << depth << std::endl;
+    ROS_DEBUG("remapped_buffer.convertTo(range_as_float, CV_32FC1)");
+    cv::Mat range_as_float;
+    remapped_buffer.convertTo(range_as_float, CV_32FC1);
+    // std::cout << "multiplying depth = range_as_float (size: " << range_as_float.size() << ") * cos_angles (size: " << cos_angles.size() << ")" << std::endl;
+    cv::Mat depth_float = range_as_float.mul(cos_angles);
+    // std::cout << "depth_float: " << depth_float << std::endl;
 
-    // TODO: scale bit depth
+    cv::Mat depth_as_uint16;
+    depth_float.convertTo(depth_as_uint16, CV_16UC1);
+    // std::cout << "depth_as_uint16: " << depth_as_uint16 << std::endl;
 
     cvi_range_mat.image = remapped_buffer;
     cvi_range_mat.toImageMsg(stretched_range_image_);
@@ -518,7 +524,7 @@ public:
 
     cv_bridge::CvImage cvi_depth_mat;
     cvi_depth_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_depth_mat.image = depth;
+    cvi_depth_mat.image = depth_as_uint16;
     cvi_depth_mat.toImageMsg(stretched_depth_image_);
     stretched_depth_image_.header.stamp = ros::Time::now();
     stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
