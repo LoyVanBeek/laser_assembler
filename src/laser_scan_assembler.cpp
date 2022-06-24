@@ -487,14 +487,28 @@ public:
     ROS_DEBUG("Apply remapping");
     cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR, cv::BORDER_CONSTANT, 0);
 
-    // Process depth image
-    auto filled_depth_roi = cv::Rect(0, 0, current_req_.horizontal_resolution, scan_index_);
-    // ROS_INFO_STREAM("Buffer has size " << scan_range_buffer_.size() << "and the filled region of that has size " << filled_roi);
-    cv::Mat cropped_depth = cv::Mat(scan_depth_buffer_, filled_depth_roi);
-    // ROS_INFO_STREAM("Cropped_depth has size " << cropped_depth.size());
-    cv::Mat sorted_depth = reorderImageRows(cropped_depth, reordering);
-    // ROS_INFO_STREAM("sorted_depth has size " << sorted_depth.size());
-    // std::cout << "sorted_depth" << std::endl << sorted_depth << std::endl;
+    // Angle image
+
+    // Angles, step 1: for each pixel, calculate the angle and take the cos(angle) t
+    cv::Mat cos_angle_row = cv::Mat::zeros(1, current_req_.horizontal_resolution, CV_32FC1);
+    // Calculate cosine of all angles, in place
+    cos_angle_row.forEach<float>([this, horizontal_step](float &value, const int* position) -> void {
+        auto angle_at_pixel = current_req_.min_width + (position[1]*horizontal_step);
+        std::cout << "position[" << position[0] << ", " << position[1] << "]: " << value << ", angle_at_pixel: " << angle_at_pixel << std::endl;
+        value = cos(angle_at_pixel);
+    });
+    std::cout << "cos(angle_row): " << cos_angle_row << std::endl;
+        
+    // Angles, step 3: stretch the row vertically so all output rows are the same
+    cv::Mat cos_angles = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_32FC1);
+    cv::resize(cos_angle_row, cos_angles, cv::Size(current_req_.horizontal_resolution, 1), cv::INTER_NEAREST);
+
+    std::cout << "cos_angles: " << cos_angles << std::endl;
+    
+    cv::Mat depth = remapped_buffer * cos_angles;
+    std::cout << "depth: " << depth << std::endl;
+
+    // TODO: scale bit depth
 
     cvi_range_mat.image = remapped_buffer;
     cvi_range_mat.toImageMsg(stretched_range_image_);
@@ -502,31 +516,9 @@ public:
     stretched_range_image_.header.frame_id = fixed_frame_.c_str();
     stretched_range_image_pub_.publish(stretched_range_image_);
 
-    cv::Mat depth_x_map_row = cv::Mat::zeros(1, current_req_.horizontal_resolution, CV_32FC1);  // We'll stretch it later, as all the values in a column are the same for X
-    for (size_t x = 0; x < current_req_.horizontal_resolution; x++)
-    {
-      // Depths are already in the right column, that is done in ScanToImages where the appropriate trigonometry is perfomed
-      depth_x_map_row.at<float>(0, x) = (float)x;
-    }
-    // std::cout << "depth_x_map_row" << std::endl << depth_x_map_row << std::endl;
-
-    cv::Mat depth_x_map;
-    cv::resize(depth_x_map_row, depth_x_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
-    // ROS_INFO_STREAM("depth_x_map has size " << depth_x_map.size());
-    // std::cout << "depth_x_map" << std::endl << depth_x_map << std::endl;
-
-    // Depth can use the same y map, since the ordering of the rows is the same and the output resolution is the same
-    // std::cout << "y_map" << std::endl << y_map << std::endl;
-
-    cv::Mat remapped_depth_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
-    ROS_DEBUG("Apply remapping");
-    cv::remap(sorted_depth, remapped_depth_buffer, depth_x_map, y_map, cv::INTER_LINEAR, cv::BORDER_CONSTANT, 0);
-    // ROS_INFO_STREAM("remapped_depth_buffer has size " << remapped_depth_buffer.size());
-    // std::cout << "remapped_depth_buffer" << std::endl << remapped_depth_buffer << std::endl;
-
     cv_bridge::CvImage cvi_depth_mat;
     cvi_depth_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    cvi_depth_mat.image = remapped_depth_buffer;
+    cvi_depth_mat.image = depth;
     cvi_depth_mat.toImageMsg(stretched_depth_image_);
     stretched_depth_image_.header.stamp = ros::Time::now();
     stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
