@@ -512,10 +512,11 @@ public:
     {
       auto height_at_pixel = current_req_.min_height + (y*vertical_step);
       auto row_in_buffer = findInterpolatedIndex(sorted_heights, height_at_pixel);
-      y_map_column.at<float>(y, 0) = (float)row_in_buffer;
-      ROS_INFO_STREAM("y: " << y << 
-        ", height_at_pixel: " << height_at_pixel << 
-        ", row_in_buffer:" << (float)row_in_buffer);
+      // current_req_.vertical_resolution - y because we want the pixels with lower height at the bottom of the image of course
+      y_map_column.at<float>(current_req_.vertical_resolution - y, 0) = (float)row_in_buffer;
+      // ROS_INFO_STREAM("y: " << y <<
+      //   ", height_at_pixel: " << height_at_pixel <<
+      //   ", row_in_buffer:" << (float)row_in_buffer);
     }
     cv::Mat y_map;
     cv::resize(y_map_column, y_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
