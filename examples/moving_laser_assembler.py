@@ -76,20 +76,6 @@ if __name__ == "__main__":
         help="How many pixels in vertical axis of image",
         default=200,
     )
-    parser.add_argument(
-        "--min_range",
-        "--min-range",
-        type=float,
-        help="What is the minimum distance in the range image",
-        default=0,
-    )
-    parser.add_argument(
-        "--max_range",
-        "--max-range",
-        type=float,
-        help="What is the maximum distance in the range image",
-        default=10,
-    )
     args = parser.parse_args(rospy.myargv()[1:])
     print(args)
 
@@ -176,8 +162,6 @@ if __name__ == "__main__":
         max_width=args.max_width,
         vertical_resolution=args.vertical_resolution,
         horizontal_resolution=args.horizontal_resolution,
-        min_range=args.min_range,
-        max_range=args.max_range,
     )
     # Wait for a result for the total movement time + some margin
     fjta.send_goal_and_wait(
