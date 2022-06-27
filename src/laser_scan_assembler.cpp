@@ -338,6 +338,8 @@ public:
     height_values_ = cv::Mat::zeros(1000, 0, CV_64FC1);
 
     subscribe();
+
+    resp.success = true;
     return true;
   }
 
@@ -360,6 +362,7 @@ public:
     else
     {
       ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Could not assemble scans");
+      resp.message = "Could not assemble scans";
     }
 
     std::vector<double> sorted_heights;
@@ -369,6 +372,8 @@ public:
     ROS_DEBUG_STREAM("Buffer has size " << scan_range_buffer_.size() << "and the filled region of that has size " << filled_roi);
     cv::Mat cropped_buffer = cv::Mat(scan_range_buffer_, filled_roi);
     std::multimap<double, std::size_t> reordering;
+    //The cropped buffer needs to be sorted before we can use it: 
+    // the height of the scans might not be monotonically increaseing/decreasing when moving up AND down betwen start and stop
     cv::Mat sorted_ranges = sortMatRowBy(height_values_, cropped_buffer, sorted_heights, reordering);
 
     // Generate y_map for use in cv::remap
@@ -453,7 +458,7 @@ public:
     stretched_depth_image.header.frame_id = fixed_frame_.c_str();
     stretched_depth_image_pub_.publish(stretched_depth_image);
 
-    // No need for theis data anymore, release the memory and make the Mats empty
+    // No need for this data anymore, release the memory and make the Mats empty
     scan_range_buffer_.release();
 
     scan_hist_mutex_.unlock();

@@ -2,8 +2,6 @@ float32 min_height  # [m]
 float32 max_height  # [m]
 float32 min_width  # [rad]
 float32 max_width  # [rad]
-float32 min_range  # [m]
-float32 max_range  # [m]
 int32 vertical_resolution  # pixels
 int32 horizontal_resolution  # pixels
 # int32 depth_resolution  Defined by pixel depth, hardcoded to 16 bits
