@@ -228,35 +228,12 @@ public:
 
   void ScanToImages(const string& fixed_frame_id, const sensor_msgs::LaserScan& scan_in)
   {
-    /* How to project the range data to a plane perpendicular to the optical axis of the scanner and through the scanner's center?
-     * For each range measurement:
-     * - X distance over the plane is then $range * sin(angle)$
-     * - Depth to the plane is then $range * cos(angle)$
-     *
-     * The image X dimension is dependent on max range & FoV max angle, since $X_max = range_max * cos(angle_max)$
-     *
-     */
-    auto depth_min_x = current_req_.max_range * sin(current_req_.min_width);  // [m] At what X would the max range fall at the first ray in the FoV?
-    auto depth_max_x = current_req_.max_range * sin(current_req_.max_width);  // [m] At what X would the max range fall at the last ray in the FoV?
-    // ROS_INFO_STREAM("current_req_.max_range: " << current_req_.max_range << ", current_req_.min_width: " << current_req_.min_width << ", sin(current_req_.min_width): " << sin(current_req_.min_width));
-    auto depth_width_x = abs(depth_max_x - depth_min_x);  // [m] Width of the image in meters
-    auto depth_max_val = current_req_.max_range;  // [m]Maximum depth represented in the depth image
-
-    auto vertical_step = abs(current_req_.max_height - current_req_.min_height) / current_req_.vertical_resolution;  // [m] Height of a pixel in both depth and range image
-    auto range_horizontal_step = abs(current_req_.max_width - current_req_.min_width) / current_req_.horizontal_resolution;  // [rad] angle covered by a pixel in the range image
-    auto depth_horizontal_step = depth_width_x / current_req_.horizontal_resolution;  // [m] Width of a pixel in the depth image
-
     tf::StampedTransform transform;
     tf_->lookupTransform(fixed_frame_id, scan_in.header.frame_id, ros::Time(0), transform);
     auto height = (double)transform.getOrigin().z(); // TODO: Make this bit configurable to be generic
-    uint row = stretched_range_mat_.rows - ((height - current_req_.min_height) / vertical_step);  // TODO: check proper types, absolutes and rounding
-    // ROS_INFO_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height << ", vertical_step: " << vertical_step << ", row: " << row);
-    // ROS_INFO_STREAM("max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width << ", horizontal_step: " << horizontal_step);
-    // ROS_INFO_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<uint16_t>::max());
-    // ROS_INFO_STREAM("depth_min_x: " << depth_min_x << ", depth_max_x: " << depth_max_x << ", depth_width_x: " << depth_width_x << ", depth_max_val: " << depth_max_val << ", depth_horizontal_step: " << depth_horizontal_step);
-
-    double previous_range = 0;
-    uint previous_range_column = -1;
+    ROS_DEBUG_STREAM("height: " << height << ", max_height: " << current_req_.max_height << ", min_height: " << current_req_.min_height);
+    ROS_DEBUG_STREAM("max_width: " << current_req_.max_width << ", min_width: " << current_req_.min_width);
+    ROS_DEBUG_STREAM("scan_in.range_max: " << scan_in.range_max << ", scan_in.range_min: " << scan_in.range_min << ", std::numeric_limits<short>::max(): " << std::numeric_limits<uint16_t>::max());
   
     // New implementation that also does interpolation
     // ROS_INFO_STREAM("Current height: " << height << ", current index: " << scan_index_);
@@ -284,39 +261,6 @@ public:
     for (size_t i = 0; i < scan_in.ranges.size(); i++)
     {
       scan_range_buffer_.at<uint16_t>(scan_index_, i) = (uint16_t)(scan_in.ranges[i] * 1000);
-
-      auto measurement_angle = scan_in.angle_min + i*scan_in.angle_increment;
-      auto depth_x_distance = scan_in.ranges[i] * sin(measurement_angle);
-      uint depth_column = (depth_x_distance - depth_min_x) / depth_horizontal_step;
-
-      auto depth = scan_in.ranges[i] * cos(measurement_angle);
-      if(depth > 0 && depth_column >= 0 && depth_column < scan_depth_buffer_.cols)
-      {
-        // Can only process positive depth value, cannot look behind us really
-        auto depth_value = (uint16_t)(depth * 1000);
-        auto curr_value = scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column);
-        auto min_value = curr_value > 0 ? std::min(depth_value, curr_value) : depth_value;
-        scan_depth_buffer_.at<uint16_t>(scan_index_, depth_column) = min_value;
-
-        // ROS_INFO_STREAM_COND(0==0,
-        //   "i: " << i <<
-        //   ", height: " << height <<
-        //   ", range: " << scan_in.ranges[i] <<
-        //   ", angle: " << measurement_angle <<
-        //   ", d_x_d: " << depth_x_distance <<
-        //   ", col: " << depth_column <<
-          // ", depth_min_x: " << depth_min_x <<
-          // ", depth_horizontal_step: " << depth_horizontal_step <<
-          // ", depth: " << depth <<
-          // ", depth_value: " << depth_value <<
-          // ", curr_value: " << curr_value <<
-          // ", min_value: " << min_value <<
-          // "");
-      }
-      else
-      {
-        // ROS_INFO_STREAM("Not writing to depth_column " << depth_column << ", range=" << scan_in.ranges[i] << ", measurement_angle=" << measurement_angle);
-      }
     }
     // ROS_INFO_STREAM("scan_buffer_.at(" << scan_index_ << ", " << 0 << ") = " << scan_buffer_.at<uint16_t>(scan_index_, 0) << ", scan_in.ranges[0] = " << scan_in.ranges[0]);
 
@@ -355,13 +299,9 @@ public:
     }
 
     // Only do this when startCollection has set these Mat's to a useable value
-    if (!stretched_range_mat_.empty() && !stretched_depth_mat_.empty())
-    {
-      ScanToImages(fixed_frame_id, scan_in);
-    }
-
     if (!scan_range_buffer_.empty())
     {
+      ScanToImages(fixed_frame_id, scan_in);
     }
 
     return;
@@ -390,26 +330,10 @@ public:
     scan_hist_mutex_.unlock();
 
     current_req_ = req;
-    stretched_range_image_ = sensor_msgs::Image();
-    // stretched_range_image_.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
-    // stretched_range_image_.width = req.horizontal_resolution;
-    // stretched_range_image_.height = req.vertical_resolution;
-    // stretched_range_image_.step = stretched_range_image_.width;
-    // stretched_range_image_.data.resize(stretched_range_image_.width * stretched_range_image_.height);
-    stretched_range_image_.header.frame_id = fixed_frame_.c_str();
     ROS_WARN_COND(req.horizontal_resolution == 0, "horizontal_resolution is zero");
     ROS_WARN_COND(req.vertical_resolution == 0, "vertical_resolution is zero");
-    // Set uninitialized range to max of the datatype, so that we can take the minimum value of current 
-    // and potentially multiple measurements striking the same pixel
-    stretched_range_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
-    ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_range_image_);
-
-    stretched_depth_mat_ = cv::Mat::zeros(req.vertical_resolution, req.horizontal_resolution, CV_16UC1);
-    ROS_DEBUG_STREAM("Created image to be filled by scans:\n" << stretched_depth_image_);
-
 
     scan_range_buffer_ = cv::Mat::zeros(1000, 1000, CV_16UC1);
-    scan_depth_buffer_ = cv::Mat::zeros(1000, req.horizontal_resolution, CV_16UC1);
     scan_index_ = 0;
     height_values_ = cv::Mat::zeros(1000, 0, CV_64FC1);
 
@@ -438,20 +362,14 @@ public:
       ROS_INFO_STREAM_NAMED("stopCollectionAndAssembleScans2", "Could not assemble scans");
     }
 
-    // std::cout << "stretched_range_mat_: " << std::endl << stretched_range_mat_ << std::endl;
-    // std::cout << "stretched_depth_mat_: " << std::endl << stretched_depth_mat_ << std::endl;
-
     std::vector<double> sorted_heights;
 
     // Process range image
-
-    cv_bridge::CvImage cvi_range_mat;
-    cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     auto filled_roi = cv::Rect(0, 0, max_scan_length_, scan_index_);
     ROS_DEBUG_STREAM("Buffer has size " << scan_range_buffer_.size() << "and the filled region of that has size " << filled_roi);
-    cv::Mat cropped = cv::Mat(scan_range_buffer_, filled_roi);
+    cv::Mat cropped_buffer = cv::Mat(scan_range_buffer_, filled_roi);
     std::multimap<double, std::size_t> reordering;
-    cv::Mat sorted = sortMatRowBy(height_values_, cropped, sorted_heights, reordering);
+    cv::Mat sorted_ranges = sortMatRowBy(height_values_, cropped_buffer, sorted_heights, reordering);
 
     // Generate y_map for use in cv::remap
     ROS_DEBUG("Create y_map_column");
@@ -483,13 +401,14 @@ public:
     cv::Mat x_map;
     cv::resize(x_map_row, x_map, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
 
-    cv::Mat remapped_buffer = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
+    cv::Mat range_image = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_16UC1);
     ROS_DEBUG("Apply remapping");
-    cv::remap(sorted, remapped_buffer, x_map, y_map, cv::INTER_LINEAR, cv::BORDER_CONSTANT, 0);
+    cv::remap(sorted_ranges, range_image, x_map, y_map, cv::INTER_LINEAR, cv::BORDER_CONSTANT, 0);
 
-    // Angle image
+    // Convert the range image to depth image by multiplying it by cos(angle)
+    // First we create an image containing the angle at each image column
 
-    // Angles, step 1: for each pixel, calculate the angle and take the cos(angle) t
+    // Angles, step 1: for each pixel, calculate the angle and take the cos(angle)
     cv::Mat cos_angle_row = cv::Mat::zeros(1, current_req_.horizontal_resolution, CV_32FC1);
     // Calculate cosine of all angles, in place
     cos_angle_row.forEach<float>([this, horizontal_step](float &value, const int* position) -> void {
@@ -499,7 +418,7 @@ public:
     });
     // std::cout << "cos(angle_row): " << cos_angle_row << std::endl;
         
-    // Angles, step 3: stretch the row vertically so all output rows are the same
+    // Angles, step 2: stretch the row vertically so all output rows are the same
     cv::Mat cos_angles = cv::Mat::zeros(current_req_.vertical_resolution, current_req_.horizontal_resolution, CV_32FC1);
     cv::resize(cos_angle_row, cos_angles, cv::Size(current_req_.horizontal_resolution, current_req_.vertical_resolution), cv::INTER_NEAREST);
 
@@ -507,7 +426,7 @@ public:
     
     ROS_DEBUG("remapped_buffer.convertTo(range_as_float, CV_32FC1)");
     cv::Mat range_as_float;
-    remapped_buffer.convertTo(range_as_float, CV_32FC1);
+    range_image.convertTo(range_as_float, CV_32FC1);
     // std::cout << "multiplying depth = range_as_float (size: " << range_as_float.size() << ") * cos_angles (size: " << cos_angles.size() << ")" << std::endl;
     cv::Mat depth_float = range_as_float.mul(cos_angles);
     // std::cout << "depth_float: " << depth_float << std::endl;
@@ -516,23 +435,26 @@ public:
     depth_float.convertTo(depth_as_uint16, CV_16UC1);
     // std::cout << "depth_as_uint16: " << depth_as_uint16 << std::endl;
 
-    cvi_range_mat.image = remapped_buffer;
-    cvi_range_mat.toImageMsg(stretched_range_image_);
-    stretched_range_image_.header.stamp = ros::Time::now();
-    stretched_range_image_.header.frame_id = fixed_frame_.c_str();
-    stretched_range_image_pub_.publish(stretched_range_image_);
+    sensor_msgs::Image stretched_range_image;
+    cv_bridge::CvImage cvi_range_mat;
+    cvi_range_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
+    cvi_range_mat.image = range_image;
+    cvi_range_mat.toImageMsg(stretched_range_image);
+    stretched_range_image.header.stamp = ros::Time::now();
+    stretched_range_image.header.frame_id = fixed_frame_.c_str();
+    stretched_range_image_pub_.publish(stretched_range_image);
 
+    sensor_msgs::Image stretched_depth_image;
     cv_bridge::CvImage cvi_depth_mat;
     cvi_depth_mat.encoding = sensor_msgs::image_encodings::TYPE_16UC1;
     cvi_depth_mat.image = depth_as_uint16;
-    cvi_depth_mat.toImageMsg(stretched_depth_image_);
-    stretched_depth_image_.header.stamp = ros::Time::now();
-    stretched_depth_image_.header.frame_id = fixed_frame_.c_str();
-    stretched_depth_image_pub_.publish(stretched_depth_image_);
+    cvi_depth_mat.toImageMsg(stretched_depth_image);
+    stretched_depth_image.header.stamp = ros::Time::now();
+    stretched_depth_image.header.frame_id = fixed_frame_.c_str();
+    stretched_depth_image_pub_.publish(stretched_depth_image);
 
     // No need for theis data anymore, release the memory and make the Mats empty
-    stretched_range_mat_.release();
-    stretched_depth_mat_.release();
+    scan_range_buffer_.release();
 
     scan_hist_mutex_.unlock();
 
@@ -554,17 +476,10 @@ private:
   ros::Publisher stretched_depth_image_pub_;
 
   cv::Mat scan_range_buffer_;
-  cv::Mat scan_depth_buffer_;
   uint scan_index_;
   cv::Mat height_values_;
   uint max_scan_length_ = 0;
   sensor_msgs::LaserScan last_scan_;
-
-  cv::Mat stretched_range_mat_;
-  sensor_msgs::Image stretched_range_image_;
-
-  cv::Mat stretched_depth_mat_;
-  sensor_msgs::Image stretched_depth_image_;
 
   filters::FilterChain<sensor_msgs::LaserScan> filter_chain_;
   mutable sensor_msgs::LaserScan scan_filtered_;
