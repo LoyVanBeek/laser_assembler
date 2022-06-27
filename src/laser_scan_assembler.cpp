@@ -66,7 +66,7 @@ public:
     // ***** Set Laser Projection Method *****
     private_ns_.param("ignore_laser_skew", ignore_laser_skew_, true);
 
-    // Automatically subscribe to scans or wait for service?
+    // Automatically subscribe to scans or wait for start-service?
     private_ns_.param("subscribe_directly", subscribe_directly_, true);
 
     // configure the filter chain from the parameter server
@@ -141,19 +141,7 @@ public:
 
     return sorted;
   }
-
-  cv::Mat reorderImageRows(cv::Mat unsorted, std::multimap<double, std::size_t> reordering)
-  {
-    cv::Mat sorted = cv::Mat(unsorted.size(), unsorted.type());
-    for (auto it=reordering.begin(); it!=reordering.end(); ++it)
-    {
-      auto sortedIndex = std::distance(reordering.begin(), it);
-      ROS_DEBUG_STREAM("origIndex: " << (*it).second << ", height: " << (*it).first << ", sortedIndex = " << sortedIndex);
-      unsorted.row((*it).second).copyTo(sorted.row(sortedIndex));
-    }
-    return sorted;
-  }
-
+  
   /**
    * @brief Given a sorted array of numbers and a number, return an imaginary index at which the query number would occur
    *
