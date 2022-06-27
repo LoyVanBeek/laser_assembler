@@ -241,21 +241,24 @@ public:
     // ROS_INFO_STREAM("height_values_.size: " << height_values_.size);
     // std::cout << "Before push_back: scan_buffer_: " << std::endl << scan_buffer_ << std::endl;
 
-    // std::vector<uint16_t> converted_ranges(scan_in.ranges.begin(), scan_in.ranges.end());
+    // std::vector<float> ranges(scan_in.ranges.begin(), scan_in.ranges.end());
 
     // ROS_INFO_STREAM("Initializing current_ranges from converted_ranges");
-    // cv::Mat current_ranges = cv::Mat(converted_ranges, true);
-    // ROS_INFO_STREAM("current_ranges *= 1000");
-    // current_ranges *= 1000;  // From meters to millimeters
-    // // std::cout << "current_ranges = " << current_ranges << std::endl;
+    // cv::Mat ranges_mat = cv::Mat(ranges, true);
+    // ranges_mat *= 1000;  // From meters to millimeters
+    // cv::Mat ranges_as_uint16;
+    // ranges_mat.convertTo(ranges_as_uint16, CV_16UC1);
+    // // ROS_INFO_STREAM("ranges_mat *= 1000");
+    // std::cout << "ranges_as_uint16 = " << ranges_as_uint16.t() << std::endl;
 
-    // auto roi = cv::Rect(scan_index_, 0, scan_in.ranges.size(), 1);
-    // ROS_INFO_STREAM("Initializing ranges2 as ROI in scan_buffer_" << roi);
-    // cv::Mat ranges2 = cv::Mat(scan_buffer_, roi);
+    // auto roi = cv::Rect(0, scan_index_, scan_in.ranges.size(), 1);
+    // ROS_INFO_STREAM("Initializing ranges2 as ROI in scan_range_buffer_" << roi);
+    // cv::Mat ranges2 = cv::Mat(scan_range_buffer_, roi);
     // ROS_INFO_STREAM("ranges2.shape: " << ranges2.size);
-    // ROS_INFO_STREAM("current_ranges.copyTo(ranges2)");
-    // current_ranges.copyTo(ranges2);
-    // ROS_INFO_STREAM("current_ranges.shape: " << current_ranges.size << ", scan_buffer_.shape: " << scan_buffer_.size);
+    // ROS_INFO_STREAM("ranges_as_uint16.copyTo(ranges2)");
+    // ranges_as_uint16.copyTo(ranges2);
+    // ROS_INFO_STREAM("ranges_as_uint16.shape: " << ranges_as_uint16.size << ", scan_buffer_.shape: " << scan_range_buffer_.size);
+    // std::cout << "ranges2 = " << ranges2.t() << std::endl;
     
     // TODO: Make this much faster without loop
     for (size_t i = 0; i < scan_in.ranges.size(); i++)
