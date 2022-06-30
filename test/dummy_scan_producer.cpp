@@ -42,13 +42,17 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
 #include <sensor_msgs/LaserScan.h>
+#include <algorithm>
+
+using namespace std ;
 
 void runLoop()
 {
   ros::NodeHandle nh;
+  ros::NodeHandle pnh("~");
 
   ros::Publisher scan_pub   = nh.advertise<sensor_msgs::LaserScan>("dummy_scan", 100);
-  ros::Rate loop_rate(5);
+  ros::Rate loop_rate(10);
 
   // Configure the Transform broadcaster
   tf::TransformBroadcaster broadcaster;
@@ -56,33 +60,67 @@ void runLoop()
 
   // Populate the dummy laser scan
   sensor_msgs::LaserScan scan;
-  scan.header.frame_id = "/dummy_laser_link";
-  scan.angle_min = 0.0;
-  scan.angle_max = 99.0;
-  scan.angle_increment = 1.0;
+  scan.header.frame_id = "dummy_laser_link";
+
+  const unsigned int N = 100;
+  scan.angle_min = -2;
+  scan.angle_max = 2;
+  scan.angle_increment = 0.04;
   scan.time_increment = .001;
   scan.scan_time = .05;
   scan.range_min = .01;
   scan.range_max = 100.0;
-
-  const unsigned int N = 100;
   scan.ranges.resize(N);
-  scan.intensities.resize(N);
+  // scan.intensities.resize(N);
 
-  for (unsigned int i=0; i<N; i++)
-  {
-    scan.ranges[i] = 10.0;
-    scan.intensities[i] = 10.0;
-  }
+  int direction = 1;
 
   // Keep sending scans until the assembler is done
   while (nh.ok())
   {
+    auto z = laser_transform.getOrigin().getZ() - (0.025 * direction);
+    laser_transform.getOrigin().setZ(z);
+
     scan.header.stamp = ros::Time::now();
+
+    for (unsigned int i=0; i<N; i++)
+    {
+      auto angle = scan.angle_min + i*scan.angle_increment - 1.571;
+      
+      std::string mode;
+      pnh.param<std::string>("mode", mode, "radius");
+      float radius;
+      pnh.param<float>("radius", radius, 2.0);
+
+      if (mode == "radius")
+      {
+        scan.ranges[i] = radius;
+      }
+      else if (mode == "line")
+      {
+        float slope = 1;
+        float intercept = 1; // Intercept of y axis
+        pnh.param<float>("slope", slope, slope);
+        pnh.param<float>("intercept", intercept, intercept);
+        // y = mx + b
+        // x = r * cos(angle)
+        // r = b / (m * cos(a) - sin(a))  (Convert ot polar coordinates)
+        scan.ranges[i] = intercept / (slope * cos(angle) - sin(angle));
+        // scan.intensities[i] = 10.0;
+      }
+      scan.ranges[i] *= -z * 0.5;
+      scan.ranges[i] = scan.ranges[i] < 0 ? 0 : scan.ranges[i];
+    }
+
     scan_pub.publish(scan);
     broadcaster.sendTransform(tf::StampedTransform(laser_transform, scan.header.stamp, "dummy_laser_link", "dummy_base_link"));
     loop_rate.sleep();
-    ROS_INFO("Publishing scan");
+    ROS_DEBUG_STREAM("Publishing scan at z=" << laser_transform.getOrigin().getZ());
+
+    if(laser_transform.getOrigin().getZ() < -2.0 || laser_transform.getOrigin().getZ() > 0)
+    {
+      direction *= -1;
+    }
   }
 }
 

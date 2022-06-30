@@ -6,11 +6,20 @@ project(laser_assembler)
 ##############################################################################
 
 set(THIS_PACKAGE_ROS_DEPS
-tf sensor_msgs message_filters roscpp laser_geometry filters)
+  cv_bridge
+  filters
+  laser_geometry
+  message_filters
+  message_generation
+  message_runtime
+  roscpp
+  sensor_msgs
+  std_msgs
+  tf
+)
 
 find_package(catkin REQUIRED COMPONENTS
-  ${THIS_PACKAGE_ROS_DEPS}
-  message_generation)
+  ${THIS_PACKAGE_ROS_DEPS})
 find_package(Boost REQUIRED COMPONENTS system)
 include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 
@@ -18,8 +27,11 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
 # Build service definitions
 ##############################################################################
 add_service_files(FILES
-AssembleScans.srv
-AssembleScans2.srv)
+  AssembleScans.srv
+  AssembleScans2.srv
+  StartCollection.srv
+  StopCollectionAndAssembleScans2.srv
+)
 
 generate_messages(DEPENDENCIES sensor_msgs std_msgs)
 
@@ -29,13 +41,15 @@ generate_messages(DEPENDENCIES sensor_msgs std_msgs)
 
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS ${THIS_PACKAGE_ROS_DEPS} message_runtime
+  CATKIN_DEPENDS ${THIS_PACKAGE_ROS_DEPS}
   DEPENDS
   )
 
 ##############################################################################
 # Build
 ##############################################################################
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
 
 add_executable(laser_scan_assembler_srv src/laser_scan_assembler_srv.cpp)
 target_link_libraries(laser_scan_assembler_srv ${catkin_LIBRARIES} ${Boost_LIBRARIES})
@@ -64,21 +78,21 @@ add_dependencies(point_cloud2_assembler ${PROJECT_NAME}_gencpp)
 ## unit testing
 
 if(CATKIN_ENABLE_TESTING)
-  find_package(rostest)
-
-  add_executable(periodic_snapshotter examples/periodic_snapshotter.cpp)
-  target_link_libraries(periodic_snapshotter ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-  add_dependencies(periodic_snapshotter ${PROJECT_NAME}_gencpp)
+  find_package(rostest REQUIRED)
 
   add_executable(dummy_scan_producer test/dummy_scan_producer.cpp)
   target_link_libraries(dummy_scan_producer ${catkin_LIBRARIES} ${Boost_LIBRARIES})
   add_dependencies(dummy_scan_producer ${PROJECT_NAME}_gencpp)
 
+  add_executable(periodic_snapshotter examples/periodic_snapshotter.cpp)
+  target_link_libraries(periodic_snapshotter ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+  add_dependencies(periodic_snapshotter ${PROJECT_NAME}_gencpp)
+
   add_executable(test_assembler test/test_assembler.cpp)
   target_link_libraries(test_assembler ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${GTEST_LIBRARIES})
   add_dependencies(test_assembler ${PROJECT_NAME}_gencpp)
 
-  add_rostest(test/test_laser_assembler.launch)
+  add_rostest(test/test_${PROJECT_NAME}.launch)
 endif()
 
 ##############################################################################
@@ -86,11 +100,11 @@ endif()
 ##############################################################################
 
 install(TARGETS
-    laser_scan_assembler_srv
     laser_scan_assembler
+    laser_scan_assembler_srv
     merge_clouds
-    point_cloud_assembler_srv
     point_cloud_assembler
+    point_cloud_assembler_srv
     point_cloud2_assembler
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
